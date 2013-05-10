@@ -1,0 +1,46 @@
+<project name="DistributedELCompletionRules" default="jar" basedir=".">
+
+	<property name="src" value="src">
+	</property>
+	<property name="lib" value="lib">
+	</property>
+	<property name="build" value="bin">
+	</property>
+	<property name="dist" value="dist">
+	</property>
+
+	
+	<target name="init" depends="clean">
+		<mkdir dir="${build}" />
+		<mkdir dir="${dist}" />
+	</target>
+
+	<target name="compile" depends="init">
+		<javac srcdir="${src}" destdir="${build}" debug="on">
+			<classpath>
+		  <fileset dir="${lib}">
+		  	<include name="*.jar"/>
+		  </fileset>
+		</classpath>
+		</javac>
+	</target>	
+	
+	
+	<target name="jar" depends="compile">
+		<jar destfile="${dist}/${ant.project.name}.jar" basedir="${build}">
+			<zipgroupfileset dir="${lib}" includes="*.jar"/>
+			<fileset dir=".">
+				<include name="*.properties"/>
+			</fileset>	
+		</jar>
+	</target>
+	
+	<target name="clean">
+		<delete dir="${build}" quiet="true">
+		</delete>
+		<delete dir="${dist}" quiet="true">
+		</delete>
+	</target>
+	
+</project>
+
