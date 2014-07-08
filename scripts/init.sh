@@ -12,14 +12,15 @@ ant jar
 
 echo -e "copying lib and dist...\n"
 
-nodes=( nimbus2 nimbus3 nimbus4 nimbus5 nimbus6 nimbus7 nimbus8 )
+nodes=( nimbus2 nimbus3 nimbus4 nimbus5 nimbus6 nimbus7 nimbus8 nimbus9 )
 for i in "${nodes[@]}"
 do
 ssh w030vxm@$i "if [ ! -d ~/DistributedReasoning/curr_approach ]; then mkdir -p ~/DistributedReasoning/curr_approach; fi
 if [ ! -d ~/DistributedReasoning/curr_approach/dist ]; then mkdir -p ~/DistributedReasoning/curr_approach/dist; fi
 if [ ! -d ~/DistributedReasoning/curr_approach/lib ]; then mkdir -p ~/DistributedReasoning/curr_approach/lib; fi
 "
-scp lib/jedis-2.1.0.jar w030vxm@$i:~/DistributedReasoning/curr_approach/lib/
+#scp lib/jedis-2.1.0.jar w030vxm@$i:~/DistributedReasoning/curr_approach/lib/
 scp dist/* w030vxm@$i:~/DistributedReasoning/curr_approach/dist/
+scp ShardInfo.properties w030vxm@$i:~/DistributedReasoning/curr_approach/
 done
 

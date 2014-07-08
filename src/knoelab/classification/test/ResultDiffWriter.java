@@ -13,7 +13,7 @@ import knoelab.classification.misc.HostInfo;
 import knoelab.classification.misc.PropertyFileHandler;
 import knoelab.classification.misc.Util;
 
-import org.semanticweb.HermiT.Reasoner;
+//import org.semanticweb.HermiT.Reasoner;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;

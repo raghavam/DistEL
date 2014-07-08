@@ -34,7 +34,7 @@ public class TerminationController extends JedisPubSub {
 		noUpdateMsgQueue = new LinkedBlockingQueue<String>(Constants.NUM_RULE_TYPES);
 		propertyFileHandler = PropertyFileHandler.getInstance();
 		classifierChannel = propertyFileHandler.getClassifierChannel();
-		msgSeparator = propertyFileHandler.getExistentialAxiomSeparator();
+//		msgSeparator = propertyFileHandler.getExistentialAxiomSeparator();
 		threadExecutor = Executors.newSingleThreadExecutor();
 	}
 	

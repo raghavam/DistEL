@@ -27,7 +27,9 @@ public class DeleteKeys {
 		}
 		else if(mode.equals("distributed")) {
 			PropertyFileHandler propertyFileHandler = PropertyFileHandler.getInstance();
-			List<HostInfo> hostInfoList = propertyFileHandler.getAllHostsInfo();
+			List<HostInfo> hostInfoList = propertyFileHandler.getAllNodes();
+			hostInfoList.add(propertyFileHandler.getConceptIDNode());
+			hostInfoList.add(propertyFileHandler.getResultNode());
 			for(HostInfo hostInfo : hostInfoList)
 				shards.add(new JedisShardInfo(hostInfo.getHost(), hostInfo.getPort()));	
 		}
@@ -48,6 +50,7 @@ public class DeleteKeys {
 				}
 				catch(Exception e) {
 					anotherAttempt = true;
+					System.out.println(e.getMessage());
 					System.out.println(shard.getHost() + ":" + shard.getPort() + 
 							" Exception - trying again");
 				}

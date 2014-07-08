@@ -1,28 +1,29 @@
 package knoelab.classification;
 
-import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
+import knoelab.classification.base.Type3_1AxiomProcessorBase;
 import knoelab.classification.controller.CommunicationHandler;
 import knoelab.classification.init.AxiomDistributionType;
-import knoelab.classification.misc.AxiomDB;
 import knoelab.classification.misc.Constants;
 import knoelab.classification.misc.HostInfo;
 import knoelab.classification.misc.PropertyFileHandler;
+import knoelab.classification.misc.ScriptsCollection;
 import knoelab.classification.misc.Util;
 import knoelab.classification.pipeline.PipelineManager;
+import knoelab.classification.worksteal.ProgressMessageHandler;
+import knoelab.classification.worksteal.WorkStealer;
 import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisShardInfo;
-import redis.clients.jedis.Response;
-import redis.clients.jedis.ShardedJedis;
+import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.Tuple;
-import redis.clients.util.Hashing;
 
 /**
  * Implements part-1 of completion rule 4 i.e. Type-3
@@ -33,56 +34,32 @@ import redis.clients.util.Hashing;
  * @author Raghava
  *
  */
-public class Type3_1AxiomProcessor {
-
-	private PropertyFileHandler propertyFileHandler;
-	private PipelineManager resultNodePReader;
-	private HostInfo resultNode;
-	private Jedis scoreDB;
+public class Type3_1AxiomProcessor extends Type3_1AxiomProcessorBase {
+	
 	private HostInfo localHostInfo;
-	private String checkAndInsertScript;
 	private CommunicationHandler communicationHandler;
 	private String machineName;
 	private Jedis resultStore;
-	private ShardedJedis type3_2ShardedJedis;
-	private Map<String, Jedis> hostJedisMap;
-	private Map<String, KeyValueWrapper> hostKVWrapperMap;
 	private Set<String> type1Hosts;
 	private List<Jedis> type1Stores;
 	private String channel;
+	private String allChannelsKey;
+	private Jedis localStore;
+	private ExecutorService executorService;
+	private ProgressMessageHandler progressMessageHandler;
+	private CountDownLatch waitLatch;
+	private CountDownLatch barrierSynch;
+	private CountDownLatch progressMsgLatch;
+	private boolean isWorkStealingEnabled;
 	
-	public Type3_1AxiomProcessor(int localHostPort) throws Exception {
+	public Type3_1AxiomProcessor(String machineName, int localHostPort) throws Exception {
+		super(machineName, localHostPort);
+		this.machineName = machineName;
 		propertyFileHandler = PropertyFileHandler.getInstance();
 		localHostInfo = propertyFileHandler.getLocalHostInfo();
-		localHostInfo.setPort(localHostPort);
-		resultNode = propertyFileHandler.getResultNode();
-		resultNodePReader = new PipelineManager(Collections.singletonList(resultNode), 
-				propertyFileHandler.getPipelineQueueSize());
-		scoreDB = new Jedis(localHostInfo.getHost(), 
-					localHostInfo.getPort(), Constants.INFINITE_TIMEOUT);
-		scoreDB.select(AxiomDB.SCORE_DB.getDBIndex());	
-		
-		Jedis localStore = new Jedis(localHostInfo.getHost(), 
+		localHostInfo.setPort(localHostPort);		
+		localStore = new Jedis(localHostInfo.getHost(), 
 				localHostInfo.getPort(), Constants.INFINITE_TIMEOUT);
-		Map<AxiomDistributionType, List<HostInfo>> typeHostInfo = 
-			propertyFileHandler.getTypeHostInfo();
-		List<HostInfo> type32Hosts = typeHostInfo.get(
-						AxiomDistributionType.CR_TYPE3_2);
-		List<JedisShardInfo> type32Shards = new ArrayList<JedisShardInfo>();
-		hostJedisMap = new HashMap<String, Jedis>();
-		hostKVWrapperMap = new HashMap<String, KeyValueWrapper>();
-		for(HostInfo hostInfo : type32Hosts) {
-			type32Shards.add(new JedisShardInfo(hostInfo.getHost(), 
-					hostInfo.getPort(), Constants.INFINITE_TIMEOUT));
-			Jedis jedis = new Jedis(hostInfo.getHost(), hostInfo.getPort(), 
-					Constants.INFINITE_TIMEOUT);
-			// need to connect explicitly for lua scripting - gives a NPE if not done.
-			jedis.connect();
-			hostJedisMap.put(hostInfo.toString(), jedis);
-			hostKVWrapperMap.put(hostInfo.toString(), new KeyValueWrapper());
-		}
-		type3_2ShardedJedis = new ShardedJedis(type32Shards, 
-									Hashing.MURMUR_HASH);
 		type1Hosts = localStore.smembers(
 				AxiomDistributionType.CR_TYPE1_1.toString());
 		type1Hosts.addAll(localStore.smembers(
@@ -93,80 +70,83 @@ public class Type3_1AxiomProcessor {
 			type1Stores.add(new Jedis(hostPort[0], 
 					Integer.parseInt(hostPort[1]), Constants.INFINITE_TIMEOUT));
 		}
-		channel = localStore.get(propertyFileHandler.getChannelKey());
-		checkAndInsertScript =
-			  "local size = redis.call('ZCARD', 'localkeys') " +
-			  "local localKeyScore = 1.0 " +
-			  "local escore " +
-			  "if(size == 0) then " +
-			  		"localKeyScore = 1.0 " +
-			  "else " +
-			  		"escore = redis.call('ZRANGE', 'localkeys', -1, -1, 'WITHSCORES') " +
-			  		"localKeyScore = escore[2] + " + Constants.SCORE_INCREMENT + " " +
-			  "end " + 
-			  "local prevKey = '' " +
-			  "local currKey = '' " +
-			  "local unique = 0 " + 
-			  "size = #KEYS " +
-			  "local score " +
-			  "local ret " +
-			  "for i=1,size do " +
-			  		"if(not redis.call('ZSCORE', KEYS[i], ARGV[i])) then " +
-			  			"if(redis.call('ZCARD', KEYS[i]) == 0) then " +
-			  				"ret = redis.call('ZADD', KEYS[i], 1.0, ARGV[i]) " +
-			  			"else " +
-			  				"escore = redis.call('ZRANGE', KEYS[i], -1, -1, 'WITHSCORES') " +
-			  				"score = escore[2] + " + Constants.SCORE_INCREMENT + " " +
-			  				"ret = redis.call('ZADD', KEYS[i], score, ARGV[i]) " +
-			  			"end " +
-			  			"unique = unique + ret " +
-			  			"currKey = KEYS[i] " +
-			  			"if(currKey ~= prevKey) then " +
-			  				"redis.call('ZADD', 'localkeys', localKeyScore, currKey) " +
-			  				"prevKey = currKey " +
-			  			"end " +
-			  		"end " +
-			  	"end " +
-			  	"return unique ";
-		
-		String allChannelsKey = propertyFileHandler.getAllChannelsKey();
+		channel = localStore.get(propertyFileHandler.getChannelKey());		
+		allChannelsKey = propertyFileHandler.getAllChannelsKey();
 		communicationHandler = new CommunicationHandler(
 				localStore.smembers(allChannelsKey));
 		resultStore = new Jedis(resultNode.getHost(), 
 						resultNode.getPort(), Constants.INFINITE_TIMEOUT);
-		localStore.disconnect();
-		try {
-			machineName = InetAddress.getLocalHost().getHostName();
+		isWorkStealingEnabled = propertyFileHandler.isWorkStealingEnabled();
+		if(isWorkStealingEnabled) {
+			waitLatch = new CountDownLatch(1);
+			barrierSynch = new CountDownLatch(1);
+			executorService = Executors.newSingleThreadExecutor();
+			progressMsgLatch = new CountDownLatch(1);
+			progressMessageHandler = new ProgressMessageHandler(waitLatch, 
+					barrierSynch, progressMsgLatch);
+			executorService.execute(progressMessageHandler);
 		}
-		catch(Exception e) { e.printStackTrace(); }
 	}
 	
 	public void processRules() throws Exception {
-		Jedis localStore = new Jedis(localHostInfo.getHost(), 
-				localHostInfo.getPort(), Constants.INFINITE_TIMEOUT);
-		HostInfo localHostInfo = propertyFileHandler.getLocalHostInfo();
-		PipelineManager localHostPReader = new PipelineManager(Collections.singletonList(localHostInfo), 
+		if(isWorkStealingEnabled) {
+			//wait till the local ProgressMsgHandler is ready
+			barrierSynch.await();
+			//let all progressMessageHandlers become active; if not msgs could be lost
+			communicationHandler.broadcastAndWaitForACK(channel);
+			//now all the ProgressMsgHandlers are ready
+		}
+		
+		if(isInstrumentationEnabled)
+			System.out.println("T31: Time taken for init: " + 
+					Util.getElapsedTimeSecs(initStartTime));
+		
+		double totalChunks;
+		double chunkCount;
+		double progress;
+		int chunkSize = propertyFileHandler.getChunkSize();
+		WorkStealer workStealer = new WorkStealer();
+		PipelineManager localHostPReader = new PipelineManager(
+				Collections.singletonList(localHostInfo), 
 				propertyFileHandler.getPipelineQueueSize());
-		List<Response<Set<String>>> smembersResponseList;
-		List<Response<Set<Tuple>>>  zrangeResponseList;
 		
 		try {
-			String localKeys = propertyFileHandler.getLocalKeys();
-			Set<String> keySet = localStore.smembers(localKeys);
+			String currentIncStr = localStore.get(Constants.CURRENT_INCREMENT);
+			double currentIncrement = 0;
+			if(currentIncStr != null)
+				currentIncrement = Double.parseDouble(currentIncStr);
 			
+			String localKeys = propertyFileHandler.getLocalKeys();
+			Set<String> keySet = localStore.zrangeByScore(localKeys, 
+					currentIncrement, currentIncrement);
 			boolean continueProcessing = false;
 			boolean nextIteration = true;
-			boolean axiomUpdate;
 			int iterationCount = 1;
-			List<String> keyList = new ArrayList<String>(keySet);
 			boolean firstIteration = true;
-			Set<String> allKeys = localStore.smembers(localKeys);
+			
+			long allKeysStartTime = 0;
+			if(isInstrumentationEnabled)
+				allKeysStartTime = System.nanoTime();
+			
+			Set<String> allKeys = localStore.zrange(localKeys, 0, -1);
+			
+			if(isInstrumentationEnabled)
+				System.out.println("T31: Time taken to read all keys: " + 
+					Util.getElapsedTimeSecs(allKeysStartTime));
+			
+			System.out.println("Total Keys: " + allKeys.size());
 			Util.setScore(scoreDB, Constants.KEYS_UPDATED, 0);
 			// current keys from Type1 can be from multiple nodes
 			for(String type1Host : type1Hosts)
 				Util.setScore(scoreDB, Constants.CURRENT_KEYS, type1Host, 0);
 
 			while(nextIteration) {
+				
+				long nextIterKeysStartTime = 0;
+				if(isInstrumentationEnabled)
+					nextIterKeysStartTime = System.nanoTime();
+				
+				System.out.println("\nStarting iteration-" + iterationCount);
 				if(!firstIteration) {
 					// get keysUpdated from Type3_2
 					Set<String> keysUpdated = new HashSet<String>(
@@ -174,57 +154,177 @@ public class Type3_1AxiomProcessor {
 					// get currKeys from Type1
 					// intersect with allKeys -- that is keySet
 					keySet.clear();
-					keyList.clear();
 					keySet = new HashSet<String>(
 							getKeysByScore(Constants.CURRENT_KEYS, false));
 					keySet.addAll(keysUpdated);
 					keySet.retainAll(allKeys);
-					keyList.addAll(keySet);
 				}
-				System.out.println("\nAxioms to process: " + keySet.size());
-				for(String axiomKey : keySet) {
-					localHostPReader.psmembers(localHostInfo, axiomKey, AxiomDB.NON_ROLE_DB);
-					double score = Util.getScore(scoreDB, axiomKey);
-					// SCORE_INCREMENT has been added to score in order to replicate the 
-					// functionality of (score i.e. exclude 'score' in the zrange
-					resultNodePReader.pZRangeByScore(resultNode, axiomKey, 
-							score+Constants.SCORE_INCREMENT, Double.POSITIVE_INFINITY, 
-							AxiomDB.NON_ROLE_DB);
-				}
-				localHostPReader.synchAll(AxiomDB.NON_ROLE_DB);
-				resultNodePReader.synchAll(AxiomDB.NON_ROLE_DB);
-				smembersResponseList = localHostPReader.getSmembersResponseList();	
-				zrangeResponseList = resultNodePReader.getZrangeByScoreResponseList();
+				//calculate total chunks and get current chunk. 			
+				totalChunks = Math.ceil((double)keySet.size()/chunkSize);
+				localStore.set(Constants.TOTAL_CHUNKS, Double.toString(totalChunks));
+				//copy keySet to chunkKeys
+				Pipeline p = localStore.pipelined();
+				for(String s : keySet)
+					p.zadd(Constants.CHUNK_KEYS, Constants.INIT_SCORE, s);
+				p.sync();
+				chunkCount = 0;
 				
-				int i = 0;				
-				for(Response<Set<String>> smembersResponse : smembersResponseList) {
-					axiomUpdate = applyRule(keyList.get(i), 
-							smembersResponse.get(), zrangeResponseList.get(i).get());
-					continueProcessing = continueProcessing || axiomUpdate;
-					i++;
+				if(isInstrumentationEnabled) {
+					System.out.println("Keys: " + keySet.size());
+					System.out.println("T31: Time taken to setup " +
+							"iteration: " + Util.getElapsedTimeSecs(
+									nextIterKeysStartTime));
 				}
-				if(i != zrangeResponseList.size())
-					throw new Exception("i should be same as list size");
-				resultNodePReader.resetSynchResponse();
-				localHostPReader.resetSynchResponse();
-				nextIteration = continueWithNextIteration(
+				
+				if(keySet.isEmpty()) {
+					progress = 1.0;
+					sendProgressMessage(progress, iterationCount);
+				}
+				else {
+					while(true) {
+						//Transaction: Read chunkSize keys, increment chunkCount 
+						//			   and delete the chunk
+						long readChunkStartTime = 0;
+						if(isInstrumentationEnabled)
+							readChunkStartTime = System.nanoTime();
+						
+						ArrayList<String> result = 
+								(ArrayList<String>) localStore.eval(
+										ScriptsCollection.decrAndGetChunk, 
+								Collections.singletonList(Constants.CHUNK_KEYS), 
+								Collections.singletonList(String.valueOf(chunkSize)));
+						
+						if(isInstrumentationEnabled)
+							System.out.println("T31: Time taken to execute " +
+									"decrAndGetChunk script: " + 
+									Util.getElapsedTimeSecs(readChunkStartTime));
+						
+						chunkCount = Integer.parseInt(result.remove(0));
+						if(chunkCount == -1) {
+							//all chunks are processed
+							progress = 1.0;
+							sendProgressMessage(progress, iterationCount);
+							break;
+						}
+						else {
+							progress = 
+								chunkCount/(double)totalChunks;
+							sendProgressMessage(progress, iterationCount);
+							double currentOrWhole;
+							if(firstIteration)
+								currentOrWhole = currentIncrement;
+							else
+								currentOrWhole = -1.0;
+							
+							long oneChunkStartTime = 0;
+							if(isInstrumentationEnabled)
+								oneChunkStartTime = System.nanoTime();
+							
+							boolean status = processOneWorkChunk(
+												result, localHostPReader, 
+												localHostInfo, 
+												currentOrWhole, null);
+							continueProcessing = continueProcessing || status;
+							
+							if(isInstrumentationEnabled)
+								System.out.println("T31: Time taken for one chunk: " + 
+										Util.getElapsedTimeSecs(oneChunkStartTime));
+								
+						}
+					}
+				}
+			if(isWorkStealingEnabled) {	
+				//check whether this process is a stealer or not
+				String isStealerStr = localStore.get(Constants.STEALER_BOOLEAN);
+				if(isStealerStr != null) {
+					//This is not a stealer but a stealee (one from which work is stealed).
+					//Check and wait till all stealers finish their work
+					
+					long stealerStartTime = 0;
+					if(isInstrumentationEnabled)
+						stealerStartTime = System.nanoTime();
+					
+					localStore.blpop(0, Constants.STEALERS_WAIT);
+					Set<String> stealersStatus = localStore.smembers(
+							Constants.STEALERS_STATUS);
+					for(String status : stealersStatus) {
+						if(status.equals("1")) {
+							continueProcessing = true;
+							break;
+						}
+					}
+					
+					if(isInstrumentationEnabled)
+						System.out.println("T31: Time taken in waiting for " +
+								"stealers: " + Util.getElapsedTimeSecs(
+										stealerStartTime));
+				}
+				
+				long workStealingStartTime = 0;
+				if(isInstrumentationEnabled)
+					workStealingStartTime = System.nanoTime();
+				
+				//wait till all nodes send in their progress messages
+				progressMsgLatch.await();
+				workStealer.checkAndStealWork(progressMessageHandler, 
+						currentIncrement, iterationCount);
+				
+				if(isInstrumentationEnabled)
+					System.out.println("T31: Time spent in helping busy " +
+							"nodes: " + Util.getElapsedTimeSecs(
+									workStealingStartTime));
+			}	
+				Util.broadcastMessage(communicationHandler, machineName, 
 						continueProcessing, iterationCount);
-				iterationCount++;
+				
+				long blockingWaitStartTime = 0;
+				if(isInstrumentationEnabled)
+					blockingWaitStartTime = System.nanoTime();
+				
+				nextIteration = communicationHandler.blockingWaitAndGetStatus(
+									channel, iterationCount);
+				
+				if(isInstrumentationEnabled)
+					System.out.println("T31: Time spent on blocking wait: " + 
+							Util.getElapsedTimeSecs(blockingWaitStartTime));
+				
 				System.out.println("nextIteration? " + nextIteration);
 				continueProcessing = false;
 				firstIteration = false;
+				
+				//Clear/Del the keys related to chunks/steal for next iteration
+				localStore.del(Constants.STEALER_BOOLEAN, 
+						Constants.STEALERS_STATUS, Constants.CHUNK_KEYS,
+						Constants.CHUNK_COUNT);
+			if(isWorkStealingEnabled) {	
+				progressMsgLatch = new CountDownLatch(1);
+				progressMessageHandler.resetLatchAndClearMessages(
+						progressMsgLatch, iterationCount);
+			}
+				iterationCount++;
+				
+				if(isInstrumentationEnabled)
+					System.out.println("T31: Time taken for iteration: " + 
+							Util.getElapsedTimeSecs(nextIterKeysStartTime));
+				System.out.println("\n");
+			}
+			if(isWorkStealingEnabled) {
+				progressMessageHandler.unsubscribe();
+				executorService.shutdown();
+				waitLatch.await();
+				if(!executorService.isTerminated())
+					executorService.awaitTermination(5, TimeUnit.SECONDS);
 			}
 		}
 		finally {
-			resultNodePReader.closeAll();
+			cleanUpForNextIncrement();				
 			localHostPReader.closeAll();
-			scoreDB.disconnect();
 			localStore.disconnect();
-			type3_2ShardedJedis.disconnect();
 			for(Jedis type1Store : type1Stores)
 				type1Store.disconnect();
 			communicationHandler.disconnect();
 			resultStore.disconnect();
+			cleanUp();
 		}
 	}
 	
@@ -262,58 +362,15 @@ public class Type3_1AxiomProcessor {
 		return keys;
 	}
 	
-	private boolean continueWithNextIteration(boolean currIterStatus, 
-			int iterationCount) {
-		String message = machineName + "~" + iterationCount;
-		// 0 - update; 1 - no update
-		if(currIterStatus) {
-			// there are some updates from at least one axiom
-			message = message + "~" + 0;
-		}
-		else {
-			// there are no updates from any of the axioms
-			message = message + "~" + 1;
-		}
-		System.out.println("continueProcessing? " + currIterStatus);
-		communicationHandler.broadcast(message);
-		System.out.println("Iteration " + iterationCount + " completed");
-		return communicationHandler.removeAndGetStatus(
-									channel, iterationCount);
-	}
-	
-	private boolean applyRule(String axiomKey, Set<String> superClassRoles, 
-			Set<Tuple> yvalues) {
-		double nextMinScore = 0;
-		Long numUpdates = new Long(0);
-		Set<String> hostKeys = hostJedisMap.keySet();
-		
-		for(String classRole : superClassRoles) {
-			String[] superClassRole = classRole.split(propertyFileHandler.getComplexAxiomSeparator());
-			for(Tuple yScore : yvalues) {
-				// key: Yr, value: B
-				
-				StringBuilder key = new StringBuilder(yScore.getElement()).
-										append(propertyFileHandler.getComplexAxiomSeparator()).
-										append(superClassRole[1]);
-				JedisShardInfo shardInfo = type3_2ShardedJedis.getShardInfo(key.toString());
-				String hostKey = shardInfo.getHost() + ":" + shardInfo.getPort();
-				KeyValueWrapper kvWrapper = hostKVWrapperMap.get(hostKey);
-				kvWrapper.addToKeyValueList(key.toString(), superClassRole[0]);		
-				if(yScore.getScore() > nextMinScore)
-					nextMinScore = yScore.getScore();
-			}
-			for(String host : hostKeys) {
-				KeyValueWrapper kvWrapper = hostKVWrapperMap.get(host);
-				if(!kvWrapper.keyList.isEmpty())
-					numUpdates += (Long) hostJedisMap.get(host).eval(checkAndInsertScript, 
-							kvWrapper.keyList, 
-							kvWrapper.valueList);
-				kvWrapper.keyList.clear();
-				kvWrapper.valueList.clear();
-			}
-		}
-		
-		Util.setScore(scoreDB, axiomKey, nextMinScore);
-		return (numUpdates > 0)?true:false;		
+	private void cleanUpForNextIncrement() {
+		scoreDB.flushDB();
+		localStore.incr(Constants.CURRENT_INCREMENT);
+		localStore.del(Constants.NUM_JOBS);
+/*		
+		List<String> types = new ArrayList<String>();
+		for(AxiomDistributionType type : AxiomDistributionType.values())
+			types.add(type.toString());
+		localStore.del(types.toArray(new String[0]));
+*/		
 	}
 }

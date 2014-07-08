@@ -1,22 +1,28 @@
 package knoelab.classification;
 
-import java.net.InetAddress;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
+import knoelab.classification.base.Type1_2AxiomProcessorBase;
 import knoelab.classification.controller.CommunicationHandler;
 import knoelab.classification.init.AxiomDistributionType;
 import knoelab.classification.misc.AxiomDB;
 import knoelab.classification.misc.Constants;
 import knoelab.classification.misc.HostInfo;
-import knoelab.classification.misc.PropertyFileHandler;
+import knoelab.classification.misc.ScriptsCollection;
 import knoelab.classification.misc.Util;
 import knoelab.classification.pipeline.PipelineManager;
+import knoelab.classification.worksteal.ProgressMessageHandler;
+import knoelab.classification.worksteal.WorkStealer;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.Response;
 import redis.clients.jedis.Tuple;
 
@@ -26,32 +32,28 @@ import redis.clients.jedis.Tuple;
  * @author Raghava
  *
  */
-public class Type1_2AxiomProcessor {
-
-	private HostInfo resultHostInfo;
-	private Jedis resultStore;
+public class Type1_2AxiomProcessor extends Type1_2AxiomProcessorBase {
+	
 	private Jedis scoreDB;
-	private PropertyFileHandler propertyFileHandler;
 	private PipelineManager pipelinedReader;
 	private HostInfo localHostInfo;
-	private List<Response<Set<String>>> responseList;
-	private String scriptNConjuncts;
 	private Jedis localStore;
 	private String machineName;
-	private CommunicationHandler communicationHandler;	
-	private String scriptCurrentKeysAdd;
-	private List<String> keysToAdd;
+	private CommunicationHandler communicationHandler;
 	private String channel;
 	private Set<String> type1Hosts;
 	private List<Jedis> type1Stores;
+	private String allChannelsKey;
+	private ExecutorService executorService;
+	private ProgressMessageHandler progressMessageHandler;
+	private CountDownLatch waitLatch;
+	private CountDownLatch barrierSynch;
+	private CountDownLatch progressMsgLatch;
+	private boolean isWorkStealingEnabled;
 	
-	public Type1_2AxiomProcessor(int port) {
-		propertyFileHandler = PropertyFileHandler.getInstance();
-		resultHostInfo = propertyFileHandler.getResultNode();
-		resultStore = new Jedis(resultHostInfo.getHost(), resultHostInfo.getPort(), 
-							Constants.INFINITE_TIMEOUT);
-		// need to connect explicitly for lua scripting - gives a NPE if not done.
-		resultStore.connect();
+	public Type1_2AxiomProcessor(String machineName, int port) {
+		super(machineName, port);
+		this.machineName = machineName;
 		localHostInfo = propertyFileHandler.getLocalHostInfo();
 		localHostInfo.setPort(port);
 		int queueSize = propertyFileHandler.getPipelineQueueSize();
@@ -63,7 +65,6 @@ public class Type1_2AxiomProcessor {
 							Constants.INFINITE_TIMEOUT);
 		localStore.connect();
 		channel = localStore.get(propertyFileHandler.getChannelKey());
-		keysToAdd = new ArrayList<String>();
 		type1Hosts = localStore.smembers(
 							AxiomDistributionType.CR_TYPE1_1.toString());
 		type1Hosts.addAll(localStore.smembers(
@@ -73,79 +74,82 @@ public class Type1_2AxiomProcessor {
 			String[] hostPort = s.split(":");
 			type1Stores.add(new Jedis(hostPort[0], 
 					Integer.parseInt(hostPort[1]), Constants.INFINITE_TIMEOUT));
-		}
-
-		scriptNConjuncts = 
-						   "local numKeys = #KEYS " +
-						   "local unique = 0 " +
-						   "redis.call('ZINTERSTORE', 'dummyKey123', " +
-						   			"numKeys, unpack(KEYS)) " +
-						   "local toBeAddedList = redis.call(" +
-						   			"'ZRANGE', 'dummyKey123', 0, -1) " +
-						   "local escore " +
-						   "local score " +
-						   "local ret " +
-						   "for i1,v1 in pairs(ARGV) do " +
-						   		"escore = redis.call('ZRANGE', v1, -1, -1, 'WITHSCORES') " +
-						   		"score = escore[2] + " + Constants.SCORE_INCREMENT + " " +
-						   		"for i2,v2 in pairs(toBeAddedList) do " +
-						   			"if(not redis.call('ZSCORE', v1, v2)) then " +
-						   				"ret = redis.call('ZADD', v1, score, v2) " +
-						   				"unique = unique + ret " +
-						   			"end " +
-						   		"end " +
-						   	"end " +
-						   	"redis.call('DEL', 'dummyKey123') " +
-						   	"return unique ";
-		
-		scriptCurrentKeysAdd = "local size = redis.call('ZCARD', KEYS[1]) " +
-							   "local score " +
-							   "local highestEScore " +
-		  					   "if(size == 0) then " +
-		  					   		"score = 1.0 " +
-		  					   	"else " +
-		  					   		"highestEScore = redis.call('ZRANGE', KEYS[1], " +
-		  					   				"-1, -1, 'WITHSCORES') " +
-		  					   		"score = highestEScore[2] + " + 
-		  					   			Constants.SCORE_INCREMENT + " " +
-		  						"end " +
-		  						"for index,value in pairs(ARGV) do " +
-		  							"redis.call('ZADD', KEYS[1], score, value) " +
-		  						"end ";
-		
-		String allChannelsKey = propertyFileHandler.getAllChannelsKey();
+		}		
+		allChannelsKey = propertyFileHandler.getAllChannelsKey();
 		communicationHandler = new CommunicationHandler(
 				localStore.smembers(allChannelsKey));
-		try {
-			machineName = InetAddress.getLocalHost().getHostName();
+		isWorkStealingEnabled = propertyFileHandler.isWorkStealingEnabled();
+		if(isWorkStealingEnabled) {
+			waitLatch = new CountDownLatch(1);
+			barrierSynch = new CountDownLatch(1);
+			progressMsgLatch = new CountDownLatch(1);
+			executorService = Executors.newSingleThreadExecutor();
+			progressMessageHandler = new ProgressMessageHandler(waitLatch, 
+					barrierSynch, progressMsgLatch);
+			executorService.execute(progressMessageHandler);
 		}
-		catch(Exception e) { e.printStackTrace(); }
 	}
 	
 	public void processRules() throws Exception {		
+		if(isWorkStealingEnabled) {
+			//wait till the local ProgressMsgHandler is ready
+			barrierSynch.await();
+			//let all progressMessageHandlers become active; if not msgs could be lost
+			communicationHandler.broadcastAndWaitForACK(channel);
+			//now all the ProgressMsgHandlers are ready
+		}
+		
+		if(isInstrumentationEnabled)
+			System.out.println("T12: Time taken for init: " + 
+				Util.getElapsedTimeSecs(initStartTime));
+		
 		PipelineManager pipelineSetReader = new PipelineManager(
 				Collections.singletonList(localHostInfo),
 				propertyFileHandler.getPipelineQueueSize());
-		try {
+		try {			
 				boolean continueProcessing = false;
 				boolean nextIteration = true;
-				boolean axiomUpdate;
 				int iterationCount = 1;
+				int chunkSize = propertyFileHandler.getChunkSize();
+				double totalChunks;
+				double chunkCount;
+				double progress;
 				String localKeys = propertyFileHandler.getLocalKeys();
-//				localStore.sunionstore(Constants.CURRENT_KEYS, localKeys);
-//				Set<String> allKeys = localStore.smembers(localKeys);
+				String currentIncStr = localStore.get(Constants.CURRENT_INCREMENT);
+				double currentIncrement = 0;
+				if(currentIncStr != null)
+					currentIncrement = Double.parseDouble(currentIncStr);
+				
 				localStore.select(AxiomDB.CONJUNCT_INDEX_DB.getDBIndex());
+				
+				long allKeysStartTime = 0;
+				if(isInstrumentationEnabled)
+					allKeysStartTime = System.nanoTime();
+				
 				Set<String> conjunctIndices = localStore.keys("*");
+				
+				if(isInstrumentationEnabled)
+					System.out.println("T12: Time taken to read all keys: " + 
+						Util.getElapsedTimeSecs(allKeysStartTime));
+				
 				localStore.select(0);
 				Util.setScore(scoreDB, Constants.KEYS_UPDATED, 0);
 				for(String type1Host : type1Hosts)
 					Util.setScore(scoreDB, Constants.CURRENT_KEYS, type1Host, 0);
 				boolean isFirstIteration = true;
 				Set<String> keySet;
+				WorkStealer workStealer = new WorkStealer();
 				
 				while(nextIteration) {
+					System.out.println("Starting iteration-" + iterationCount);
+					
+					long nextIterKeysStartTime = 0;
+					if(isInstrumentationEnabled)
+						nextIterKeysStartTime = System.nanoTime();
+					
 					if(isFirstIteration) {
-						keySet = localStore.smembers(localKeys);
+						keySet = localStore.zrangeByScore(localKeys, 
+								currentIncrement, currentIncrement);
 						isFirstIteration = false;
 					}
 					else {
@@ -173,65 +177,172 @@ public class Type1_2AxiomProcessor {
 						pipelineSetReader.resetSynchResponse();
 						commonConjuncts.clear();
 					}
-					System.out.println("Axioms to process: " + keySet.size());
-					for(String axiomKey : keySet) 
-						pipelinedReader.psmembers(localHostInfo, axiomKey, 
-								AxiomDB.NON_ROLE_DB);
-					pipelinedReader.synchAll(AxiomDB.NON_ROLE_DB);
-					responseList = new ArrayList<Response<Set<String>>>(
-							pipelinedReader.getSmembersResponseList());
-					pipelinedReader.resetSynchResponse();
-					int i = 0;
-					//TODO: use threading as in 2-way joins. Don't wait until everything is
-					//		read(pipelinedReader)
-					for(String axiomKey : keySet) {
-						if(responseList.get(i).get().isEmpty())
-							axiomUpdate = false;
-						else
-							axiomUpdate = applyRule(axiomKey, responseList.get(i).get());
-						continueProcessing = continueProcessing || axiomUpdate;
-						i++;
+					//calculate total chunks and get current chunk. 			
+					totalChunks = Math.ceil((double)keySet.size()/chunkSize);
+					localStore.set(Constants.TOTAL_CHUNKS, Double.toString(totalChunks));
+					//copy keySet to chunkKeys
+					Pipeline p = localStore.pipelined();
+					for(String s : keySet)
+						p.zadd(Constants.CHUNK_KEYS, Constants.INIT_SCORE, s);
+					p.sync();
+					chunkCount = 0;
+					if(isInstrumentationEnabled)
+						System.out.println("Keys: " + keySet.size());
+					if(keySet.isEmpty()) {
+						progress = 1.0;
+						sendProgressMessage(progress, iterationCount);
 					}
-					System.out.println("Keys Updated: " + keysToAdd.size());
-					if(!keysToAdd.isEmpty()) {
-						if(keysToAdd.size() < Constants.SCRIPT_KEY_LIMIT)
-							localStore.eval(scriptCurrentKeysAdd, 
-									Collections.singletonList(
-											Constants.CURRENT_KEYS), keysToAdd);
+					
+					if(isInstrumentationEnabled)
+						System.out.println("T12: Time taken to setup " +
+								"iteration: " + Util.getElapsedTimeSecs(
+										nextIterKeysStartTime));
+					
+					while(chunkCount < totalChunks) {
+						//Transaction: Read chunkSize keys, increment chunkCount 
+						//			   and delete the chunk
+						
+						long readChunkStartTime = 0;
+						if(isInstrumentationEnabled)
+							readChunkStartTime = System.nanoTime();
+						
+						ArrayList<String> result = 
+								(ArrayList<String>) localStore.eval(
+										ScriptsCollection.decrAndGetChunk, 
+								Collections.singletonList(Constants.CHUNK_KEYS), 
+								Collections.singletonList(String.valueOf(chunkSize)));
+						chunkCount = Integer.parseInt(result.remove(0));
+						
+						if(isInstrumentationEnabled)
+							System.out.println("T12: Time taken to execute " +
+									"decrAndGetChunk script: " + 
+									Util.getElapsedTimeSecs(readChunkStartTime));
+						
+						if(chunkCount == -1) {
+							//all chunks are processed
+							progress = 1.0;
+							sendProgressMessage(progress, iterationCount);
+							break;
+						}
 						else {
-							int j = 1;
-							int startIndex = 0;
-							while(j <= keysToAdd.size()) {
-								if((j%Constants.SCRIPT_KEY_LIMIT == 0) || 
-										(j == keysToAdd.size())) {
-									localStore.eval(scriptCurrentKeysAdd, 
-											Collections.singletonList(
-													Constants.CURRENT_KEYS), 
-											keysToAdd.subList(startIndex, j));
-									startIndex = j;
-								}
-								j++;
+							progress = 
+								chunkCount/(double)totalChunks;
+							sendProgressMessage(progress, iterationCount);
+							double currentOrWhole;
+							if(isFirstIteration)
+								currentOrWhole = currentIncrement;
+							else
+								currentOrWhole = -1.0;
+							
+							long oneChunkStartTime = 0;
+							if(isInstrumentationEnabled)
+								oneChunkStartTime = System.nanoTime();
+							
+							boolean status = processOneWorkChunk(
+									result, 
+									pipelinedReader, localHostInfo, 
+									currentOrWhole, localStore);
+							continueProcessing = continueProcessing || status;	
+							
+							if(isInstrumentationEnabled)
+								System.out.println("T12: Time taken for one chunk: " + 
+										Util.getElapsedTimeSecs(oneChunkStartTime));
+						}
+					}
+				if(isWorkStealingEnabled) {	
+					//check whether this process is a stealer or not
+					String isStealerStr = localStore.get(Constants.STEALER_BOOLEAN);
+					if(isStealerStr != null) {
+						//This is not a stealer but a stealee (one from which work is stealed).
+						//Check and wait till all stealers finish their work
+						
+						long stealerStartTime = 0;
+						if(isInstrumentationEnabled)
+							stealerStartTime = System.nanoTime();
+						
+						localStore.blpop(0, Constants.STEALERS_WAIT);
+						Set<String> stealersStatus = localStore.smembers(
+								Constants.STEALERS_STATUS);
+						for(String status : stealersStatus) {
+							if(status.equals("1")) {
+								continueProcessing = true;
+								break;
 							}
 						}
-						keysToAdd.clear();
-					}
-					nextIteration = continueWithNextIteration(
+						
+						if(isInstrumentationEnabled)
+							System.out.println("T12: Time taken in waiting for " +
+									"stealers: " + Util.getElapsedTimeSecs(
+											stealerStartTime));
+						
+					}				
+					
+					long workStealingStartTime = 0;
+					if(isInstrumentationEnabled)
+						workStealingStartTime = System.nanoTime();
+					
+					//wait till all nodes send in their progress messages
+					progressMsgLatch.await();
+					workStealer.checkAndStealWork(progressMessageHandler, 
+							currentIncrement, iterationCount);
+					
+					if(isInstrumentationEnabled)
+						System.out.println("T12: Time spent in helping busy " +
+								"nodes: " + Util.getElapsedTimeSecs(
+										workStealingStartTime));
+				}	
+					Util.broadcastMessage(communicationHandler, machineName, 
 							continueProcessing, iterationCount);
-					System.out.println("nextIteration? " + nextIteration + "\n");
-					iterationCount++;
+					
+					long blockingWaitStartTime = 0;
+					if(isInstrumentationEnabled)
+						blockingWaitStartTime = System.nanoTime();
+					
+					nextIteration = communicationHandler.blockingWaitAndGetStatus(
+										channel, iterationCount);
+					
+					if(isInstrumentationEnabled)
+						System.out.println("T12: Time spent on blocking wait: " + 
+								Util.getElapsedTimeSecs(blockingWaitStartTime));
+					
+					System.out.println("nextIteration? " + nextIteration);
 					continueProcessing = false;
 					keySet.clear();
+					
+					//Clear/Del the keys related to chunks/steal for next iteration
+					localStore.del(Constants.STEALER_BOOLEAN, 
+							Constants.STEALERS_STATUS, Constants.CHUNK_KEYS,
+							Constants.CHUNK_COUNT);
+				if(isWorkStealingEnabled) {	
+					progressMsgLatch = new CountDownLatch(1);
+					progressMessageHandler.resetLatchAndClearMessages(
+							progressMsgLatch, iterationCount);
+				}
+				iterationCount++;
+				if(isInstrumentationEnabled)
+					System.out.println("T12: Time taken for iteration: " + 
+							Util.getElapsedTimeSecs(nextIterKeysStartTime));
+					System.out.println("\n");
+				}
+				if(isWorkStealingEnabled) {	
+					progressMessageHandler.unsubscribe();
+					executorService.shutdown();
+					waitLatch.await();
+					if(!executorService.isTerminated())
+						executorService.awaitTermination(5, TimeUnit.SECONDS);
 				}
 		}
 		finally {
+			cleanUpForNextIncrement();
+			cleanUp();
 			localStore.disconnect();
-			resultStore.disconnect();
 			scoreDB.disconnect();
 			pipelinedReader.closeAll();
 			pipelineSetReader.closeAll();
 			communicationHandler.disconnect();
 			for(Jedis type1Store : type1Stores)
 				type1Store.disconnect();
+//			System.out.println("\nOverall Max Conjuncts: " + maxConjuncts);
 		}
 	}
 	
@@ -272,36 +383,15 @@ public class Type1_2AxiomProcessor {
 		return keys;
 	}
 	
-	private boolean continueWithNextIteration(boolean currIterStatus, 
-			int iterationCount) {
-		String message = machineName + "~" + iterationCount;
-		// 0 - update; 1 - no update
-		if(currIterStatus) {
-			// there are some updates from at least one axiom
-			message = message + "~" + 0;
-		}
-		else {
-			// there are no updates from any of the axioms
-			message = message + "~" + 1;
-		}
-		System.out.println("continueProcessing? " + currIterStatus);
-		communicationHandler.broadcast(message);
-		System.out.println("Iteration " + iterationCount + " completed");
-		return communicationHandler.removeAndGetStatus(
-									channel, iterationCount);
-	}
-	
-	private boolean applyRule(String axiomKey, Set<String> axiomValue) 
-		throws Exception {
-		String[] conjuncts = axiomKey.split(
-				propertyFileHandler.getComplexAxiomSeparator());
-		// there are n conjuncts on the LHS of the axiom 
-		Long numUpdates = (Long) resultStore.eval(scriptNConjuncts, 
-				Arrays.asList(conjuncts), new ArrayList<String>(axiomValue));
-		if(numUpdates > 0) {
-			for(String superClass : axiomValue)
-				keysToAdd.add(superClass);
-		}
-		return (numUpdates > 0)?true:false;
+	private void cleanUpForNextIncrement() {
+		localStore.del(Constants.CURRENT_KEYS, Constants.NUM_JOBS);
+/*		
+		List<String> types = new ArrayList<String>();
+		for(AxiomDistributionType type : AxiomDistributionType.values())
+			types.add(type.toString());
+		localStore.del(types.toArray(new String[0]));
+*/		
+		scoreDB.flushDB();
+		localStore.incr(Constants.CURRENT_INCREMENT);
 	}
 }

@@ -40,26 +40,7 @@ public class ResultRearranger {
 	    // TODO: Don't hardcode the ID store
 //	    Jedis idReader = new Jedis("nimbus5.cs.wright.edu", 6380, Constants.INFINITE_TIMEOUT);
 	    
-		try {
-/*			
-			OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
-			
-			System.out.println("Comparing classification output for " + ontPath);
-			File ontFile = new File(ontPath);
-			IRI documentIRI = IRI.create(ontFile);
-			OWLOntology ontology = manager.loadOntologyFromOntologyDocument(documentIRI);
-		    System.out.println("Not Normalizing");
-		
-		    GregorianCalendar cal1 = new GregorianCalendar();
-		    PelletReasoner pelletReasoner = PelletReasonerFactory.getInstance().createReasoner( ontology );
-		    pelletReasoner.prepareReasoner();
-		    GregorianCalendar cal2 = new GregorianCalendar();
-			double diff = (cal2.getTimeInMillis() - cal1.getTimeInMillis())/1000;
-			long completionTimeMin = (long)diff/60;
-			double completionTimeSec = diff - (completionTimeMin * 60);
-			
-			System.out.println("Pellet completed in " + completionTimeMin + " mins and " + completionTimeSec + " secs");
-*/			
+		try {		
 			System.out.println("Rearrranging results...");
 			rearrangeClassifierResults(resultStore0, resultStore1);
 //			System.out.println("Printing results....");
@@ -84,6 +65,7 @@ public class ResultRearranger {
 		resultStore0.move("channel", 1);
 		resultStore0.move("ChannelSet", 1);
 		resultStore0.move("type", 1);
+		resultStore0.move(Constants.FOUND_BOTTOM, 1);
 		
 		Pipeline p = resultStore1.pipelined();
 		Set<String> allKeys = resultStore0.keys("*");		
@@ -117,6 +99,7 @@ public class ResultRearranger {
 		resultStore1.move("channel", 0);
 		resultStore1.move("type", 0);
 		resultStore1.move(Constants.KEYS_UPDATED, 0);
+		resultStore1.move(Constants.FOUND_BOTTOM, 0);
 	}
 	
 	private void printResults(OWLOntology ontology, 

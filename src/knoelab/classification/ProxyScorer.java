@@ -1,22 +1,5 @@
 package knoelab.classification;
 
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.util.ArrayList;
-import java.util.GregorianCalendar;
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
-import knoelab.classification.misc.AxiomDB;
-import knoelab.classification.misc.Constants;
-import knoelab.classification.misc.HostInfo;
-import knoelab.classification.misc.PropertyFileHandler;
-import knoelab.classification.misc.Util;
-import knoelab.classification.pipeline.PipelineManager;
-import knoelab.classification.pipeline.PipelinedWriter;
 
 /**
  * Proxy server for Redis. It takes in
@@ -26,6 +9,7 @@ import knoelab.classification.pipeline.PipelinedWriter;
  * @author Raghava
  *
  */
+@Deprecated
 public class ProxyScorer {
 	
 /*	

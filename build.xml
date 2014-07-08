@@ -41,6 +41,8 @@
 		<delete dir="${dist}" quiet="true">
 		</delete>
 	</target>
+
+<!-- ant test -Dontology=../TestOntologies/Galen/not-galen.owl -->	
 	
 </project>
 

@@ -25,8 +25,8 @@ public class CommunicationHandler {
 		channelHost = new Jedis(hostInfo.getHost(), 
 				hostInfo.getPort(), Constants.INFINITE_TIMEOUT);
 		PropertyFileHandler propertyFileHandler = PropertyFileHandler.getInstance();
-		// subtract conceptID & resultNode
-		numChannels = propertyFileHandler.getShardCount() - 2;
+		// subtract conceptID & resultNode -- channels (given arg) doesn't contain them
+		numChannels = propertyFileHandler.getNodeCount();
 		iterCountMsgsMap = new HashMap<String, List<String>>();
 		this.channels = channels;
 		try {
@@ -40,12 +40,13 @@ public class CommunicationHandler {
 	}
 	
 	public void broadcast(String message) {
-		for(String channel : channels) 
+		for(String channel : channels) {
 			channelHost.lpush(channel, message);
+		}
 		System.out.println("Sent msgs...");
 	}
 	
-	public boolean removeAndGetStatus(String channel, int iterationCount) {
+	public boolean blockingWaitAndGetStatus(String channel, int iterationCount) {
 		// get numChannel number of messages
 		String message;
 		String iterCountStr = Integer.toString(iterationCount);
@@ -80,6 +81,15 @@ public class CommunicationHandler {
 //			System.out.println("Updates: " + msg);
 		}
 		return (updateDone==0)?true:false;
+	}
+	
+	public void broadcastAndWaitForACK(String channel) {
+		broadcast("up");
+		int msgCount = 0;
+		while(msgCount < numChannels) {
+			channelHost.blpop(0, channel);
+			msgCount++;
+		}
 	}
 	
 	public void disconnect() {

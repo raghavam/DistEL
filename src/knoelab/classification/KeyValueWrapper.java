@@ -4,24 +4,32 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class KeyValueWrapper {
-	List<String> keyList;
-	List<String> valueList;
+	private List<String> keyList;
+	private List<String> valueList;
 	
-	KeyValueWrapper() {
+	public KeyValueWrapper() {
 		keyList = new ArrayList<String>();
 		valueList = new ArrayList<String>();
 	}
 	
-	void addToKeyValueList(String k, String v) {
+	public void addToKeyValueList(String k, String v) {
 		keyList.add(k);
 		valueList.add(v);
 	}
 	
-	int getSize() {
+	public List<String> getKeyList() {
+		return keyList;
+	}
+	
+	public List<String> getValueList() {
+		return valueList;
+	}
+	
+	public int getSize() {
 		return keyList.size();
 	}
 	
-	void clear() {
+	public void clear() {
 		keyList.clear();
 		valueList.clear();
 	}

@@ -26,10 +26,12 @@ public class PipelineManager implements PipelinedWriter, PipelinedReader {
 	// concept or role related pipeline. So a list of lists is not required
 	private List<Response<Long>> saddResponseList;
 	private List<Response<Long>> sunionResponseList;
-	private List<Response<Set<Tuple>>> zrangeByScoreResponseList;
+	private List<Response<Set<Tuple>>> zrangeByScoreWithScoresResponseList;
+	private List<Response<Set<String>>> zrangeByScoreResponseList;
 	private List<Response<Set<String>>> zrangeResponseList;
 	private List<Response<Set<String>>> smembersResponseList;
 	private List<Response<String>> getResponseList;
+	private List<Response<Double>> zscoreResponseList;
 	
 	private boolean synchDone;
 	private List<String> saddKeys;
@@ -40,8 +42,10 @@ public class PipelineManager implements PipelinedWriter, PipelinedReader {
 		jedisShards = new HashMap<String, Jedis>(hostInfoList.size());
 		saddResponseList = new ArrayList<Response<Long>>();
 		sunionResponseList = new ArrayList<Response<Long>>();
-		zrangeByScoreResponseList = new ArrayList<Response<Set<Tuple>>>();
+		zrangeByScoreWithScoresResponseList = new ArrayList<Response<Set<Tuple>>>();
+		zrangeByScoreResponseList = new ArrayList<Response<Set<String>>>();
 		zrangeResponseList = new ArrayList<Response<Set<String>>>();
+		zscoreResponseList = new ArrayList<Response<Double>>();
 		smembersResponseList = new ArrayList<Response<Set<String>>>();
 		getResponseList = new ArrayList<Response<String>>();
 		synchDone = false;
@@ -83,7 +87,10 @@ public class PipelineManager implements PipelinedWriter, PipelinedReader {
 	 */
 	@Override
 	public void psadd(HostInfo hostInfo, String key, String value,
-			AxiomDB axiomDB, boolean collectPipelineResponse) {
+			AxiomDB axiomDB, boolean collectPipelineResponse) throws Exception {
+		if(key == null || value == null)
+			throw new Exception("Key or Value is null. Key: " + 
+					key + "  Value: " + value);
 		PipelineMessage pmessage = new PipelineMessage(key, value, 
 					PipelineMessageType.SADD, collectPipelineResponse);
 		insert(hostInfo, pmessage, axiomDB);
@@ -128,14 +135,39 @@ public class PipelineManager implements PipelinedWriter, PipelinedReader {
 				maxScore, PipelineMessageType.ZRANGE_BY_SCORE, true);		
 		insert(hostInfo, pMsgScore, axiomDB);
 	}
+	
+	@Override
+	public void pZRangeByScoreWithScores(HostInfo hostInfo, String key, double minScore, 
+			double maxScore, AxiomDB axiomDB) {
+		PipelineMessageWithScore pMsgScore = new PipelineMessageWithScore(key, minScore, 
+				maxScore, PipelineMessageType.ZRANGE_BY_SCORE_WITH_SCORES, true);		
+		insert(hostInfo, pMsgScore, axiomDB);
+	}
+	
+	@Override
+	public boolean pZScore(HostInfo hostInfo, String key, String member, 
+			AxiomDB axiomDB) {
+		PipelineMessage pmessage = new PipelineMessage(key, member, 
+				PipelineMessageType.ZSCORE, true);
+		return insert(hostInfo, pmessage, axiomDB);
+	}
 
 	@Override
 	public void psmembers(HostInfo hostInfo, String key, AxiomDB axiomDB) {
-		PipelineMessage pmessage = new PipelineMessage(key, null, PipelineMessageType.SMEMBERS, true);
+		PipelineMessage pmessage = new PipelineMessage(key, null, 
+				PipelineMessageType.SMEMBERS, true);
 		insert(hostInfo, pmessage, axiomDB);
 	}
 	
-	private void insert(HostInfo hostInfo, PipelineMessage pipelineMessage, 
+	@Override
+	public void phset(HostInfo hostInfo, String key, String field, 
+			String value, AxiomDB axiomDB) {
+		PipelineMessageWithField pmessage = new PipelineMessageWithField(key, 
+				field, value, PipelineMessageType.HSET, false);
+		insert(hostInfo, pmessage, axiomDB);
+	}
+	
+	private boolean insert(HostInfo hostInfo, PipelineMessage pipelineMessage, 
 			AxiomDB axiomDB) {
 		String mapKey = hostInfo.getHost() + hostInfo.getPort();			
 		LinkedBlockingQueue<PipelineMessage> queue = shardQueue.get(mapKey);
@@ -146,6 +178,7 @@ public class PipelineManager implements PipelinedWriter, PipelinedReader {
 			// queue would be empty now. Insert (k,v)
 			queue.offer(pipelineMessage);
 		}
+		return insertSuccessful;
 	}
 	
 	private void synchQueue(String mapKey, LinkedBlockingQueue<PipelineMessage> queue, 
@@ -162,21 +195,14 @@ public class PipelineManager implements PipelinedWriter, PipelinedReader {
 		queue.drainTo(msglist);
 		Pipeline p = jedis.pipelined();
 
-		PipelineMessage pipelineMsg = null;
-		PipelineMessageWithScore pipelineMsgScore = null;
-		for(int i=0; i<msglist.size(); i++) {
-			if(msglist.get(i) instanceof PipelineMessageWithScore) {
-				pipelineMsgScore = (PipelineMessageWithScore) msglist.get(i);
-				pipelineMsg = pipelineMsgScore;
-			}
-			else
-				pipelineMsg = msglist.get(i);
+		for(PipelineMessage pipelineMsg : msglist) {
 
 			switch(pipelineMsg.getMessageType()) {
 				case SET: 	p.set(pipelineMsg.getKey(), pipelineMsg.getValue());
 							break;
 				
-				case SADD: 	Response<Long> saddResponse = p.sadd(pipelineMsg.getKey(), pipelineMsg.getValue());
+				case SADD: 	Response<Long> saddResponse = p.sadd(
+								pipelineMsg.getKey(), pipelineMsg.getValue());
 							if(pipelineMsg.isCollectPipelineResponse()) {
 								saddResponseList.add(saddResponse);
 								saddKeys.add(pipelineMsg.getKey());
@@ -194,33 +220,50 @@ public class PipelineManager implements PipelinedWriter, PipelinedReader {
 												pipelineMsg.getKey(), pipelineMsg.getValue());
 									break;
 									
-				case ZADD:	p.zadd(pipelineMsg.getKey(), pipelineMsgScore.getScore(), 
-									pipelineMsgScore.getValue());
+				case ZADD:	p.zadd(pipelineMsg.getKey(), 
+								((PipelineMessageWithScore)pipelineMsg).getScore(), 
+								((PipelineMessageWithScore)pipelineMsg).getValue());
 							break;
+							
+				case ZRANGE_BY_SCORE: 	zrangeByScoreResponseList.add(
+								p.zrangeByScore(
+								((PipelineMessageWithScore)pipelineMsg).getKey(), 
+								((PipelineMessageWithScore)pipelineMsg).getMinScore(), 
+								((PipelineMessageWithScore)pipelineMsg).getMaxScore()));
+								break;		
 									
-				case ZRANGE_BY_SCORE:	zrangeByScoreResponseList.add(
-											p.zrangeByScoreWithScores(
-													pipelineMsgScore.getKey(), 
-													pipelineMsgScore.getMinScore(), 
-													pipelineMsgScore.getMaxScore()));
+				case ZRANGE_BY_SCORE_WITH_SCORES:	zrangeByScoreWithScoresResponseList.add(
+										p.zrangeByScoreWithScores(
+										((PipelineMessageWithScore)pipelineMsg).getKey(), 
+										((PipelineMessageWithScore)pipelineMsg).getMinScore(), 
+										((PipelineMessageWithScore)pipelineMsg).getMaxScore()));
 										break;
 				case ZRANGE: zrangeResponseList.add(p.zrange(
-								pipelineMsgScore.getKey(), 
-								(int)pipelineMsgScore.getMinScore(), 
-								(int)pipelineMsgScore.getMaxScore()));
+							((PipelineMessageWithScore)pipelineMsg).getKey(), 
+								(int)((PipelineMessageWithScore)pipelineMsg).getMinScore(), 
+								(int)((PipelineMessageWithScore)pipelineMsg).getMaxScore()));
 							 break;
+							 
+				case ZSCORE: zscoreResponseList.add(p.zscore(
+								pipelineMsg.getKey(), pipelineMsg.getValue()));
+							 break;	
 							
 				case SMEMBERS:	smembersResponseList.add(p.smembers(pipelineMsg.getKey()));
 								break;
 								
 				case GET: 	getResponseList.add(p.get(pipelineMsg.getKey()));	
 							break;
+							
+				case HSET:  p.hset(
+							pipelineMsg.getKey(), 
+							((PipelineMessageWithField)pipelineMsg).getField(), 
+							pipelineMsg.getValue());		
+							break;
 				
 				default: try { throw new Exception("Unexpected Pipeline Message Type: " 
 									+ pipelineMsg.getMessageType()); } 
 						 catch (Exception e) { e.printStackTrace(); }
 			}
-			pipelineMsg = pipelineMsgScore = null;
 		}
 		p.sync();
 		msglist.clear();
@@ -296,8 +339,10 @@ public class PipelineManager implements PipelinedWriter, PipelinedReader {
 		sunionKeys.clear();
 		smembersResponseList.clear();
 		zrangeByScoreResponseList.clear();
+		zrangeByScoreWithScoresResponseList.clear();
 		zrangeResponseList.clear();
 		getResponseList.clear();
+		zscoreResponseList.clear();
 	}
 	
 	public List<String> getPipelinedSAddKeys() {
@@ -312,8 +357,12 @@ public class PipelineManager implements PipelinedWriter, PipelinedReader {
 		return smembersResponseList;
 	}
 	
-	public List<Response<Set<Tuple>>> getZrangeByScoreResponseList() {
+	public List<Response<Set<String>>> getZrangeByScoreResponseList() {
 		return zrangeByScoreResponseList;
+	}
+	
+	public List<Response<Set<Tuple>>> getZrangeByScoreWithScoresResponseList() {
+		return zrangeByScoreWithScoresResponseList;
 	}
 	
 	public List<Response<Set<String>>> getZRangeResponseList() {
@@ -322,6 +371,10 @@ public class PipelineManager implements PipelinedWriter, PipelinedReader {
 	
 	public List<Response<String>> getResponseList() {
 		return getResponseList;
+	}
+	
+	public List<Response<Double>> getZScoreResponseList() {
+		return zscoreResponseList;
 	}
 }
 

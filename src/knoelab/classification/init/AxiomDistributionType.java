@@ -1,6 +1,11 @@
 package knoelab.classification.init;
 
-
+/**
+ * Refer "Pushing the EL Envelope" technical report for description of
+ * the completion rules represented here.
+ * @author raghava
+ *
+ */
 public enum AxiomDistributionType {
 
 	// CR1_1 is of type1. A < B axioms
@@ -15,6 +20,10 @@ public enum AxiomDistributionType {
 	// CR5 and CR6 are of type4, type5. r < s and r o s < t
 	CR_TYPE4,
 	CR_TYPE5,
+	// this is CR5 in the tech report.
+	CR_TYPE_BOTTOM,
+	// this is CR6 and represents the squiggly arrow rule.
+//	CR_TYPE_SQUIG_ARROW,
 	// this type is used to represent String IDs for concepts/roles
 	CONCEPT_ID,
 	// this represents the node to which the results should go

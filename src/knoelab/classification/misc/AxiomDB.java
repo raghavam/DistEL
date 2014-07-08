@@ -17,7 +17,8 @@ public enum AxiomDB {
 	SCORE_DB(2),
 	// DB used to store the index of conjunct axioms
 	CONJUNCT_INDEX_DB(3),
-	DB4(4);
+	DB4(4),
+	DB5(5);
 	
 	private int dbIndex;
 	

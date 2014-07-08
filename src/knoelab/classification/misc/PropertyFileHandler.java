@@ -1,8 +1,10 @@
 package knoelab.classification.misc;
 
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -19,7 +21,8 @@ import knoelab.classification.init.AxiomDistributionType;
  * @author Raghava
  */
 public class PropertyFileHandler {
-	private final static PropertyFileHandler propertyFileHandler = new PropertyFileHandler();
+	private final static PropertyFileHandler propertyFileHandler = 
+			new PropertyFileHandler();
 	private Properties shardInfoProperties = null;
 	private final String PROPERTY_FILE = "ShardInfo.properties";
 	
@@ -27,8 +30,7 @@ public class PropertyFileHandler {
 		// does not allow instantiation of this class
 		try {
 			shardInfoProperties = new Properties();
-			InputStream stream = getClass().getResourceAsStream("/" + PROPERTY_FILE);
-			shardInfoProperties.load(stream);
+			shardInfoProperties.load(new FileInputStream(PROPERTY_FILE));
 		}
 		catch(FileNotFoundException e) {
 			e.printStackTrace();
@@ -48,7 +50,15 @@ public class PropertyFileHandler {
 	
 	public HostInfo getLocalHostInfo() {
 		String[] hostPort = shardInfoProperties.getProperty("shard.local").split(":");
-		HostInfo localhostInfo = new HostInfo(hostPort[0], Integer.parseInt(hostPort[1]));
+		String localMachineName = null;
+		try {
+			//it is better use machine name rather than 'localhost'
+			localMachineName = InetAddress.getLocalHost().getHostName();
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		}
+		HostInfo localhostInfo = new HostInfo(localMachineName, 
+				Integer.parseInt(hostPort[1]));
 		return localhostInfo;
 	}
 /*	
@@ -96,13 +106,9 @@ public class PropertyFileHandler {
 		return shardInfoProperties.getProperty("result.superclass.symbol");
 	}
 	
-	public String getComplexAxiomSeparator() {
-		return shardInfoProperties.getProperty("complex.axiom.separator");
-	}
-	
-	public String getExistentialAxiomSeparator() {
-		return shardInfoProperties.getProperty("existential.axiom.separator");
-	}
+//	public String getComplexAxiomSeparator() {
+//		return shardInfoProperties.getProperty("complex.axiom.separator");
+//	}
 	
 	public String getLocalKeys() {
 		return shardInfoProperties.getProperty("kvstore.localkeys");
@@ -129,11 +135,11 @@ public class PropertyFileHandler {
 		HostInfo tcHostInfo = new HostInfo(hostPort[0], Integer.parseInt(hostPort[1]));
 		return tcHostInfo;
 	}
-	
+/*	
 	public int getShardCount() {
 		return Integer.parseInt(shardInfoProperties.getProperty("shard.count"));
 	}
-	
+*/	
 	public String getEquivalentClassKeys() {
 		return shardInfoProperties.getProperty("equiclass.keys");
 	}
@@ -151,41 +157,95 @@ public class PropertyFileHandler {
 		return Integer.parseInt(maxSize);
 	}
 	
+	public Map<AxiomDistributionType, Double> getAllTypesWeightMap() {
+		Map<AxiomDistributionType, Double> typesWeightMap = 
+			new HashMap<AxiomDistributionType, Double>();
+		AxiomDistributionType[] axiomTypes = AxiomDistributionType.values();
+		for(AxiomDistributionType axiomType : axiomTypes) {
+			if(axiomType == AxiomDistributionType.CONCEPT_ID || 
+					axiomType == AxiomDistributionType.RESULT_TYPE)
+				continue;
+			String weightStr = shardInfoProperties.getProperty(
+									axiomType.toString());
+			double weight;
+			String[] numDenom = weightStr.split("/");
+			if(numDenom.length == 2) 
+				weight = Double.parseDouble(numDenom[0])/
+							Double.parseDouble(numDenom[1]);
+			else
+				weight = Double.parseDouble(weightStr);
+			typesWeightMap.put(axiomType, weight);
+		}
+		return typesWeightMap;
+	}
+	
+	public List<HostInfo> getAllNodes() {
+		List<HostInfo> allNodes = new ArrayList<HostInfo>();
+		String csvHosts = shardInfoProperties.getProperty("NODES_LIST");
+		String[] hosts = csvHosts.split(",");
+		for(String hostPort : hosts) {
+			String[] hpSplit = hostPort.split(":");
+			allNodes.add(new HostInfo(hpSplit[0], 
+					Integer.parseInt(hpSplit[1])));
+		}
+		return allNodes;
+	}
+	
+	public int getNodeCount() {
+		String csvHosts = shardInfoProperties.getProperty("NODES_LIST");
+		String[] hosts = csvHosts.split(",");
+		return hosts.length;
+	}
+	
+	public HostInfo getConceptIDNode() {
+		String hostInfo = shardInfoProperties.getProperty(
+						AxiomDistributionType.CONCEPT_ID.toString());
+		String[] hpSplit = hostInfo.split(":");
+		return new HostInfo(hpSplit[0], Integer.parseInt(hpSplit[1]));
+	}
+	
 	public HostInfo getResultNode() {
-		String[] hostPort = shardInfoProperties.getProperty("result.node").split(":");
-		HostInfo resultNode = new HostInfo(hostPort[0], Integer.parseInt(hostPort[1]));
-		return resultNode;
+		String hostInfo = shardInfoProperties.getProperty(
+						AxiomDistributionType.RESULT_TYPE.toString());
+		String[] hpSplit = hostInfo.split(":");
+		return new HostInfo(hpSplit[0], Integer.parseInt(hpSplit[1]));
 	}
 	
-	public Map<AxiomDistributionType,List<HostInfo>> getTypeHostInfo() {
-		Map<AxiomDistributionType, List<HostInfo>> typeHostMap = 
-							new HashMap<AxiomDistributionType, List<HostInfo>>();
-		AxiomDistributionType[] axiomTypes = AxiomDistributionType.values();
-		for(AxiomDistributionType axiomType : axiomTypes) {
-			String csvHosts = shardInfoProperties.getProperty(axiomType.toString());
-			String[] hosts  = csvHosts.split(",");
-			List<HostInfo> hostLst = new ArrayList<HostInfo>();
-			for(String hostPort : hosts) {
-				String[] hpSplit = hostPort.split(":");
-				hostLst.add(new HostInfo(hpSplit[0], Integer.parseInt(hpSplit[1])));
-			}
-			typeHostMap.put(axiomType, hostLst);
-		}
-		return typeHostMap;
+	public boolean isWorkStealingEnabled() {
+		String isEnabledStr = shardInfoProperties.getProperty(
+				"work.stealing.enabled");
+		if(isEnabledStr.equals("true"))
+			return true;
+		else
+			return false;
 	}
 	
-	public List<HostInfo> getAllHostsInfo() {
-		List<HostInfo> hostInfoLst = new ArrayList<HostInfo>();
-		AxiomDistributionType[] axiomTypes = AxiomDistributionType.values();
-		for(AxiomDistributionType axiomType : axiomTypes) {
-			String csvHosts = shardInfoProperties.getProperty(axiomType.toString());
-			String[] hosts  = csvHosts.split(",");
-			for(String hostPort : hosts) {
-				String[] hpSplit = hostPort.split(":");
-				hostInfoLst.add(new HostInfo(hpSplit[0], Integer.parseInt(hpSplit[1])));
-			}
-		}
-		return hostInfoLst;
+	public boolean isInstrumentationEnabled() {
+		String isEnabledStr = shardInfoProperties.getProperty(
+				"instrumentation.enabled");
+		if(isEnabledStr.equals("true"))
+			return true;
+		else
+			return false; 
+	}
+	
+	public int getType32SizeFactor() {
+		return Integer.parseInt(
+				shardInfoProperties.getProperty("TYPE32_SIZE_FACTOR"));
+	}
+	
+	public HostInfo getNormalizerCache() {
+		String hostInfo = shardInfoProperties.getProperty("NORMALIZE_CACHE");
+		String[] hpSplit = hostInfo.split(":");
+		return new HostInfo(hpSplit[0], Integer.parseInt(hpSplit[1]));
+	}
+	
+	public String getClassPrefix() {
+		return shardInfoProperties.getProperty("class.prefix");
+	}
+	
+	public String getPropertyPrefix() {
+		return shardInfoProperties.getProperty("property.prefix");
 	}
 	
 	public String getAxiomTypeKey() {
@@ -220,6 +280,11 @@ public class PropertyFileHandler {
 		String host = shardInfoProperties.getProperty("channel.host");
 		String[] hostPort = host.split(":");
 		return new HostInfo(hostPort[0], Integer.parseInt(hostPort[1]));
+	}
+	
+	public int getChunkSize() {
+		String chunkSize = shardInfoProperties.getProperty("chunk.size");
+		return Integer.parseInt(chunkSize);
 	}
 }
 

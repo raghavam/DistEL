@@ -9,11 +9,14 @@ public interface PipelinedWriter {
 			AxiomDB axiomDB);
 
 	public void psadd(HostInfo hostInfo, String key, String value,
-			AxiomDB axiomDB, boolean collectPipelineResponse);
+			AxiomDB axiomDB, boolean collectPipelineResponse) throws Exception;
 
 	public void psunionstore(HostInfo hostInfo, String key,
 			String value, AxiomDB axiomDB, boolean collectPipelineResponse);
 
 	public void pzadd(HostInfo hostInfo, String key, double score, 
 			String value, AxiomDB axiomDB);
+	
+	public void phset(HostInfo hostInfo, String key, String field, String value, 
+			AxiomDB axiomDB);
 }

@@ -1,6 +1,11 @@
 package knoelab.classification.misc;
 
+import java.util.ArrayList;
 import java.util.GregorianCalendar;
+import java.util.List;
+
+import knoelab.classification.controller.CommunicationHandler;
+import knoelab.classification.init.EntityType;
 
 import redis.clients.jedis.Jedis;
 
@@ -44,26 +49,20 @@ public class Util {
 			throw new Exception("Concept does not exist in DB: " + concept);
 		return conceptID;
 	}	
-/*	
-	public static List<HostInfo> getTargetHostInfoList(AxiomDistributionType... axiomTypes) {
-		List<HostInfo> targetHostInfo = new ArrayList<HostInfo>();	
-		Jedis localStore = new Jedis(localHostInfo.getHost(), localHostInfo.getPort());
-		for(AxiomDistributionType axiomType : axiomTypes) {
-			String hostPort[] = localStore.hget("TypeHost", axiomType.toString()).trim().split(":");
-			HostInfo targetHost = new HostInfo(hostPort[0], Integer.parseInt(hostPort[1]));
-			targetHostInfo.add(targetHost);
-		}
-		localStore.disconnect();
-		return targetHostInfo;
+	
+	public static long getElapsedTime(GregorianCalendar startTime) {
+		GregorianCalendar endTime = new GregorianCalendar();		
+		return endTime.getTimeInMillis() - startTime.getTimeInMillis();
+//		double totalDiff = (endTime.getTimeInMillis() - startTime.getTimeInMillis())/1000;
+//		long totalMins = (long)totalDiff/60;
+//		double totalSecs = totalDiff - (totalMins * 60);
 	}
-*/	
-	public static void printElapsedTime(GregorianCalendar startTime) {
-		GregorianCalendar iterEnd = new GregorianCalendar();		
-		double totalDiff = (iterEnd.getTimeInMillis() - startTime.getTimeInMillis())/1000;
-		System.out.println("In secs: " + totalDiff);
-		long totalMins = (long)totalDiff/60;
-		double totalSecs = totalDiff - (totalMins * 60);
-		System.out.println(totalMins + " mins and " + totalSecs + " secs");
+	
+	public static double getElapsedTimeSecs(long startTime) {
+		long endTime = System.nanoTime();
+		long diffTime = endTime - startTime;
+		double diffTimeSecs = ((double)diffTime/1000000000);
+		return diffTimeSecs;
 	}
 	
 	public static double getScore(Jedis scoreDB, String axiomKey) {
@@ -91,5 +90,71 @@ public class Util {
 	public static void setScore(Jedis scoreDB, String axiomKey, 
 			String field, double score) {
 		scoreDB.hset(axiomKey, field, Double.toString(score));
+	}
+	
+	public static String getPackedID(long id, EntityType entityType) {
+		String str = Long.toString(id);
+		//2 places for length of ID and 1 for whether its a class/individual/role
+		StringBuilder packedID = new StringBuilder(str.length() + 3);
+		packedID.append(String.format("%02d", str.length()));
+		packedID.append(str);
+		packedID.append(entityType.getTypeID());
+		return packedID.toString();
+	}
+	
+	public static List<String> unpackIDs(String packedIDs) {
+		List<String> unpackedIDs = new ArrayList<String>();
+		int start = 0;
+		while(start < packedIDs.length()) {
+			//first two places go to the length of the ID
+			int idLength = Integer.parseInt(packedIDs.substring(start, 
+												start + 2));
+			int totalLength = idLength + 3;
+			unpackedIDs.add(packedIDs.substring(start, start + totalLength));
+			start = start + totalLength;
+		}
+		return unpackedIDs;
+	}
+
+/*	
+	public static boolean continueWithNextIteration(
+			CommunicationHandler communicationHandler, String machineName, 
+			String channel, boolean currIterStatus, int iterationCount) {
+		StringBuilder message = new StringBuilder(machineName);
+		message.append("~").append(iterationCount);
+		// 0 - update; 1 - no update
+		if(currIterStatus) {
+			// there are some updates from at least one axiom
+			message.append("~").append(0);
+		}
+		else {
+			// there are no updates from any of the axioms
+			message.append("~").append(1);
+		}
+		System.out.println("continueProcessing? " + currIterStatus);
+		communicationHandler.broadcast(message.toString());
+		System.out.println("Iteration " + iterationCount + " completed");
+		return communicationHandler.removeAndGetStatus(
+									channel, iterationCount);
+	}
+*/
+	
+	public static void broadcastMessage(
+			CommunicationHandler communicationHandler, String machineName,
+			boolean currIterStatus, int iterationCount) {
+		StringBuilder message = new StringBuilder(machineName);
+		message.append("~").append(iterationCount);
+		// 0 - update; 1 - no update
+		if(currIterStatus) {
+			// there are some updates from at least one axiom
+			message.append("~").append(0);
+		}
+		else {
+			// there are no updates from any of the axioms
+			message.append("~").append(1);
+		}
+		System.out.println("continueProcessing? " + currIterStatus);
+		communicationHandler.broadcast(message.toString());
+		System.out.println("Iteration " + iterationCount + " completed");
 	}
 }
