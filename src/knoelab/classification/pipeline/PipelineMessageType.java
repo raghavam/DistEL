@@ -11,5 +11,6 @@ public enum PipelineMessageType {
 	ZRANGE,
 	ZSCORE,
 	SMEMBERS,
-	HSET;
+	HSET,
+	EVAL;
 }

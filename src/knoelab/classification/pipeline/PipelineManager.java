@@ -31,6 +31,7 @@ public class PipelineManager implements PipelinedWriter, PipelinedReader {
 	private List<Response<Set<String>>> zrangeResponseList;
 	private List<Response<Set<String>>> smembersResponseList;
 	private List<Response<String>> getResponseList;
+	private List<Response<String>> evalResponseList;
 	private List<Response<Double>> zscoreResponseList;
 	
 	private boolean synchDone;
@@ -38,7 +39,8 @@ public class PipelineManager implements PipelinedWriter, PipelinedReader {
 	private List<String> sunionKeys;
 	
 	public PipelineManager(List<HostInfo> hostInfoList, int queueBlockingSize) {
-		shardQueue = new HashMap<String, LinkedBlockingQueue<PipelineMessage>>(hostInfoList.size());
+		shardQueue = new HashMap<String, LinkedBlockingQueue<PipelineMessage>>(
+				hostInfoList.size());
 		jedisShards = new HashMap<String, Jedis>(hostInfoList.size());
 		saddResponseList = new ArrayList<Response<Long>>();
 		sunionResponseList = new ArrayList<Response<Long>>();
@@ -48,6 +50,7 @@ public class PipelineManager implements PipelinedWriter, PipelinedReader {
 		zscoreResponseList = new ArrayList<Response<Double>>();
 		smembersResponseList = new ArrayList<Response<Set<String>>>();
 		getResponseList = new ArrayList<Response<String>>();
+		evalResponseList = new ArrayList<Response<String>>();
 		synchDone = false;
 		saddKeys = new ArrayList<String>();
 		sunionKeys = new ArrayList<String>();
@@ -56,7 +59,8 @@ public class PipelineManager implements PipelinedWriter, PipelinedReader {
 			String mapKey = hostInfo.getHost() + hostInfo.getPort();
 			LinkedBlockingQueue<PipelineMessage> pipelineQueue = 
 				new LinkedBlockingQueue<PipelineMessage>(queueBlockingSize);
-			Jedis jedis = new Jedis(hostInfo.getHost(), hostInfo.getPort(), Constants.INFINITE_TIMEOUT);
+			Jedis jedis = new Jedis(hostInfo.getHost(), hostInfo.getPort(), 
+					Constants.INFINITE_TIMEOUT);
 			shardQueue.put(mapKey, pipelineQueue);
 			jedisShards.put(mapKey, jedis);
 		}
@@ -167,6 +171,13 @@ public class PipelineManager implements PipelinedWriter, PipelinedReader {
 		insert(hostInfo, pmessage, axiomDB);
 	}
 	
+	public void peval(HostInfo hostInfo, String script, List<String> keys, 
+			List<String> args, AxiomDB axiomDB) {
+		PipelineMessageWithScript pmessage = new PipelineMessageWithScript(
+				script, keys, args);
+		insert(hostInfo, pmessage, axiomDB);
+	}
+	
 	private boolean insert(HostInfo hostInfo, PipelineMessage pipelineMessage, 
 			AxiomDB axiomDB) {
 		String mapKey = hostInfo.getHost() + hostInfo.getPort();			
@@ -259,6 +270,13 @@ public class PipelineManager implements PipelinedWriter, PipelinedReader {
 							((PipelineMessageWithField)pipelineMsg).getField(), 
 							pipelineMsg.getValue());		
 							break;
+							
+				case EVAL:	PipelineMessageWithScript pmessage = 
+									(PipelineMessageWithScript) pipelineMsg;
+							evalResponseList.add(p.eval(pmessage.getScript(), 
+									pmessage.getScriptKeys(), 
+									pmessage.getScriptArgs()));
+							break;			
 				
 				default: try { throw new Exception("Unexpected Pipeline Message Type: " 
 									+ pipelineMsg.getMessageType()); } 
@@ -343,6 +361,7 @@ public class PipelineManager implements PipelinedWriter, PipelinedReader {
 		zrangeResponseList.clear();
 		getResponseList.clear();
 		zscoreResponseList.clear();
+		evalResponseList.clear();
 	}
 	
 	public List<String> getPipelinedSAddKeys() {
@@ -375,6 +394,10 @@ public class PipelineManager implements PipelinedWriter, PipelinedReader {
 	
 	public List<Response<Double>> getZScoreResponseList() {
 		return zscoreResponseList;
+	}
+	
+	public List<Response<String>> getEvalResponseList() {
+		return evalResponseList;
 	}
 }
 
