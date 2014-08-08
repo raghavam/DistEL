@@ -109,17 +109,24 @@ public class ELClassifierTest {
 //		    OWLReasoner reasoner = reasonerFactory.createReasoner(ontology);
 //		    reasoner.precomputeInferences(InferenceType.CLASS_HIERARCHY);
 	    	
-		    RELReasonerFactory relfactory = new RELReasonerFactory();
-		    RELReasoner reasoner = relfactory.createReasoner(ontology);
-		    reasoner.precomputeInferences(InferenceType.CLASS_HIERARCHY);
+//		    RELReasonerFactory relfactory = new RELReasonerFactory();
+//		    RELReasoner reasoner = relfactory.createReasoner(ontology);
+//		    reasoner.precomputeInferences(InferenceType.CLASS_HIERARCHY);
 	    	
 //	    	JcelReasoner reasoner = new JcelReasoner(ontology, false);
 //		    reasoner.precomputeInferences(InferenceType.CLASS_HIERARCHY);
 	    	
-		    System.out.print("Reasoner completed in (millis): " + 
+	    	OWLReasonerFactory reasonerFactory = 
+					new ElkReasonerFactory();
+			OWLReasoner reasoner = reasonerFactory.createReasoner(
+					ontology);
+			reasoner.precomputeInferences(
+					InferenceType.CLASS_HIERARCHY);
+	    	
+		    System.out.println("Reasoner completed in (millis): " + 
 		    		Util.getElapsedTime(cal1));
 		    
-		    System.out.println("Comparing results using TrOWL.....");	    
+		    System.out.println("Comparing results using ELK.....");	    
 		    rearrangeAndCompareResults(ontology, reasoner, 
 		    		resultStore, resultStore2, idReader);
 		
@@ -128,6 +135,7 @@ public class ELClassifierTest {
 		    reasoner.dispose();
 	    }
 	    finally {
+	    	localStore.disconnect();
 		    resultStore.disconnect();
 		    resultStore2.disconnect();
 		    idReader.disconnect();
@@ -379,7 +387,9 @@ public class ELClassifierTest {
 		
 		Set<OWLNamedIndividual> individuals = ontology.getIndividualsInSignature();
 		System.out.println("Rearranging individuals...");
-		System.out.println("Individuals: " + individuals.size());		
+		System.out.println("Individuals: " + individuals.size());
+		System.out.println("Not checking for individuals...");
+/*		
 		rearrangeIndividuals(individuals, resultStore, resultStore2, idReader);
 		int cnt = 0;
 		for(OWLClass cl : classes) {	
@@ -398,6 +408,7 @@ public class ELClassifierTest {
 			}
 		}
 		System.out.println("No of classes for which individuals didn't match: " + cnt);
+*/		
 		resultStore.select(0);
 	}
 	
@@ -634,9 +645,9 @@ public class ELClassifierTest {
 //			System.out.println("Give the path of owl file");
 //    		System.exit(-1);
 //		}
-//		new ELClassifierTest().precomputeAndCheckResults(args);
+		new ELClassifierTest().precomputeAndCheckResults(args);
 //		new ELClassifierTest().mergeAndCompare(args[0]);
-		new ELClassifierTest().getReasonerRunTime();
+//		new ELClassifierTest().getReasonerRunTime();
 //		new ELClassifierTest().getELKIncrementalRuntime(args[0], args[1]);
 //		new ELClassifierTest().getPelletIncrementalClassifierRunTime(
 //				args[0], args[1]);
