@@ -54,6 +54,7 @@ public class Type2AxiomProcessorBase extends RolePairHandler implements AxiomPro
 		}
 		Util.setScore(scoreDB, axiomKey, nextMinScore);
 		xvalues.clear();
+		
 		for(String ce : axiomValue) {
 			// R(r) = R(r) U {(X,B)}  				
 			// key: Br, value: X

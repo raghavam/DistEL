@@ -59,6 +59,8 @@ public class Type4AxiomProcessorBase extends RolePairHandler implements AxiomPro
 			//form Ys
 			StringBuilder conceptSuperRole = 
 				new StringBuilder(conceptRole.get(0)).append(s);
+			//using false here since in CR5, the rule does not depend on 
+			//'r' value.
 			numUpdates += insertRolePair(conceptSuperRole.toString(), xvals, 
 					false);
 		}

@@ -341,6 +341,7 @@ public class RolePairHandler {
 	 *  
 	 * @param key key should be of the form Yr
 	 * @param value value should be of the form X
+	 * @param bottomInsert related to CR5, rule on \bot
 	 * @return returns the number of updates made by the insertion of 
 	 * this role pair.
 	 */
@@ -490,7 +491,7 @@ public class RolePairHandler {
 			Map<String, Map<Integer,KeyValueWrapper>> hostWrapperMap) 
 			throws Exception {
 		JedisShardInfo shardInfo = shardedJedis.getShardInfo(key);
-		String hostKey = shardInfo.getHost() + ":" + shardInfo.getPort();
+		String hostKey = shardInfo.getHost() + ":" + shardInfo.getPort();		
 		Map<Integer,KeyValueWrapper> kvWrapperMap = 
 			hostWrapperMap.get(hostKey);
 		KeyValueWrapper kvWrapper = 

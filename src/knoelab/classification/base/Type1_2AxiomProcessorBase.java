@@ -27,7 +27,6 @@ public class Type1_2AxiomProcessorBase implements AxiomProcessor {
 	
 	protected boolean isInstrumentationEnabled;
 	protected long initStartTime;
-	protected int maxConjuncts = 0; 
 	
 	public Type1_2AxiomProcessorBase(String machineName, int port) {
 		propertyFileHandler = PropertyFileHandler.getInstance();
@@ -64,7 +63,7 @@ public class Type1_2AxiomProcessorBase implements AxiomProcessor {
 			   		"end " +
 			   	"end " +
 			   	"redis.call('DEL', 'dummyKey123') " +
-			   	"return unique ";
+			   	"return tostring(unique) ";	 
 		HostInfo channelHostInfo = propertyFileHandler.getChannelHost();
 		chunkChannelHost = new Jedis(channelHostInfo.getHost(), 
 				channelHostInfo.getPort(), Constants.INFINITE_TIMEOUT);
@@ -118,7 +117,8 @@ public class Type1_2AxiomProcessorBase implements AxiomProcessor {
 		long applyRuleStartTime = 0;
 		if(isInstrumentationEnabled)
 			applyRuleStartTime = System.nanoTime();
-		
+
+/*		
 		for(String axiomKey : chunkKeys) {
 			if(responseList.get(i).get().isEmpty())
 				axiomUpdate = false;
@@ -127,6 +127,13 @@ public class Type1_2AxiomProcessorBase implements AxiomProcessor {
 			continueProcessing = continueProcessing || axiomUpdate;
 			i++;
 		}
+		System.out.println("In T12 processOneWorkChunk; chunkKeys: " + chunkKeys.size());
+		System.out.println("In T12 processOneWorkChunk; i: " + i);
+		System.out.println("In T12 processOneWorkChunk; keysToAdd: " + keysToAdd.size());
+*/		
+		axiomUpdate = applyRule(chunkKeys, responseList);
+		continueProcessing = continueProcessing || axiomUpdate;
+		responseList.clear();
 		
 		if(isInstrumentationEnabled)
 			System.out.println("T12: Time taken to applyRule() on the chunk: " + 
@@ -171,18 +178,55 @@ public class Type1_2AxiomProcessorBase implements AxiomProcessor {
 	throws Exception {
 		List<String> conjuncts = Util.unpackIDs(axiomKey);
 		// there are n conjuncts on the LHS of the axiom 
-//		long startTime = System.nanoTime();
-		Long numUpdates = (Long) resultStore.eval(scriptNConjuncts, conjuncts, 
-								new ArrayList<String>(axiomValue));
-//		long endTime = System.nanoTime();
-//		totalDiffTime = totalDiffTime + (endTime - startTime);
-		if(conjuncts.size() > maxConjuncts)
-			maxConjuncts = conjuncts.size();
+		Long numUpdates = Long.valueOf((String) resultStore.eval(
+				scriptNConjuncts, conjuncts, 
+				new ArrayList<String>(axiomValue)));
 		if(numUpdates > 0) {
 			for(String superClass : axiomValue)
 				keysToAdd.add(superClass);
 		}		
 		return (numUpdates > 0)?true:false;
+	}
+	
+	private boolean applyRule(List<String> chunkKeys, 
+			List<Response<Set<String>>> axiomValueResponseList) {
+		HostInfo resultHostInfo = propertyFileHandler.getResultNode();
+		PipelineManager pipelineManager = new PipelineManager(
+				Collections.singletonList(resultHostInfo), 
+				propertyFileHandler.getPipelineQueueSize());
+		int i = 0;
+		boolean axiomUpdate;
+		boolean allAxiomUpdate = false;
+		List<Integer> nonEmptyIndices = new ArrayList<Integer>(
+				chunkKeys.size());
+		for(String axiomKey : chunkKeys) {
+			if(!axiomValueResponseList.get(i).get().isEmpty()) {
+				nonEmptyIndices.add(i);
+				List<String> conjuncts = Util.unpackIDs(axiomKey);
+				List<String> axiomValueList = new ArrayList<String>(
+						axiomValueResponseList.get(i).get());
+				pipelineManager.peval(resultHostInfo, scriptNConjuncts, 
+						conjuncts, axiomValueList, AxiomDB.NON_ROLE_DB);
+			}
+			i++;
+		}
+		pipelineManager.synchAndCloseAll(AxiomDB.NON_ROLE_DB);
+		List<Response<String>> evalResponseList = 
+				new ArrayList<Response<String>>(
+						pipelineManager.getEvalResponseList());
+		pipelineManager.resetSynchResponse();
+		i = 0;
+		for(int index : nonEmptyIndices) {
+			//script returns string due to bug in Jedis. 
+			//eval return type is String, not Object
+			Long numUpdates = Long.valueOf(evalResponseList.get(i).get());
+			axiomUpdate = (numUpdates > 0)?true:false;	
+			if(axiomUpdate) 
+				keysToAdd.addAll(axiomValueResponseList.get(index).get());
+			allAxiomUpdate = allAxiomUpdate || axiomUpdate;
+			i++;
+		}
+		return allAxiomUpdate;
 	}
 	
 	@Override

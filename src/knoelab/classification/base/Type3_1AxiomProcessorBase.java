@@ -203,8 +203,7 @@ public class Type3_1AxiomProcessorBase implements AxiomProcessor {
 			if(yvalues == null)
 				yvalues = new HashSet<Tuple>();
 			yvalues.add(t);
-		}
-		
+		}		
 		for(String classRole : superClassRoles) {
 			List<String> superClassRole = Util.unpackIDs(classRole);
 			for(Tuple yScore : yvalues) {
@@ -213,7 +212,7 @@ public class Type3_1AxiomProcessorBase implements AxiomProcessor {
 				StringBuilder key = new StringBuilder(yScore.getElement()).
 										append(superClassRole.get(1));
 				JedisShardInfo shardInfo = type3_2ShardedJedis.getShardInfo(key.toString());
-				String hostKey = shardInfo.getHost() + ":" + shardInfo.getPort();
+				String hostKey = shardInfo.getHost() + ":" + shardInfo.getPort();				
 				KeyValueWrapper kvWrapper = hostKVWrapperMap.get(hostKey);
 				kvWrapper.addToKeyValueList(key.toString(), superClassRole.get(0));		
 				if(yScore.getScore() > nextMinScore)
@@ -227,28 +226,7 @@ public class Type3_1AxiomProcessorBase implements AxiomProcessor {
 								checkAndInsertScript, kvWrapper.getKeyList(), 
 								kvWrapper.getValueList());
 					}catch(Exception e) {
-	/*					
-						System.err.println("Connection alive? " + 
-								hostJedisMap.get(host).isConnected());
-						System.out.println("Connection alive? " + 
-								hostJedisMap.get(host).ping());
-						System.out.println("KeyList: " + 
-								kvWrapper.getKeyList().size() + "  ValueList: " + 
-								kvWrapper.getValueList().size());
-						System.out.println("e instanceof SocketException? " + 
-								(e instanceof SocketException));
-						//reconnect & try again?
-						String[] hostPort = host.split(":");
-						int type32Port = Integer.parseInt(hostPort[1]);
-						Jedis jedis = new Jedis(hostPort[0], type32Port, 
-								Constants.INFINITE_TIMEOUT);
-						// need to connect explicitly for lua scripting - gives a NPE if not done.
-						jedis.connect();
-						hostJedisMap.put(host.toString(), jedis);
-						numUpdates += (Long) hostJedisMap.get(host).eval(
-								checkAndInsertScript, kvWrapper.getKeyList(), 
-								kvWrapper.getValueList());
-	*/							
+						e.printStackTrace();
 					}
 				}
 				kvWrapper.clear();

@@ -128,7 +128,70 @@ public class MiscTest {
 //		removeNonELAxioms(args[0]);
 //		checkObjectPropertyRangeAxioms(args[0]);
 		
-		File ontFile = new File(args[0]);
+		testPipelineEval();
+	}
+	
+	private static void testPipelineEval() {
+		
+		String scriptSingleConcept =  
+				"local elementScore = redis.call('ZRANGE', " +
+					"KEYS[1], -1, -1, 'WITHSCORES') " +
+				"local unique = 0 " +
+				"local minScore = table.remove(ARGV) " +
+				"local toBeAddedList = redis.call(" +
+					"'ZRANGEBYSCORE', KEYS[1], minScore, '+inf') " +
+				"local escore " +
+				"local score " +
+				"local ret " +
+				"local unique = 0 " +
+				"for index1,value1 in pairs(ARGV) do " +
+					"escore = redis.call('ZRANGE', value1, -1, -1, 'WITHSCORES') " +
+					"score = escore[2] + " + Constants.SCORE_INCREMENT + " " +
+					"for index2,value2 in pairs(toBeAddedList) do " +
+						"if(not redis.call('ZSCORE', value1, value2)) then " +
+							"ret = redis.call('ZADD', value1, score, value2) " +
+							"unique = unique + ret " +
+						"end " +
+					"end " +
+				"end " +
+				"return tostring(elementScore[2]) .. ':' .. tostring(unique) ";
+		
+		String script = "local t = {} " +
+						"t[1] = 'a' " +
+						"t[2] = 'b' " +
+						"return t ";
+		
+		PropertyFileHandler propertyFileHandler = 
+				PropertyFileHandler.getInstance();
+		HostInfo resultHostInfo = propertyFileHandler.getResultNode();
+		Jedis jedis = new Jedis(resultHostInfo.getHost(), 
+				resultHostInfo.getPort(), Constants.INFINITE_TIMEOUT);
+		Pipeline p = jedis.pipelined();
+		Response<String> response = p.eval(script, 
+				Collections.singletonList("062016890"), 
+				Collections.singletonList("05595490"));
+		p.sync();
+		response.get();
+		String[] responseStr = response.get().split(":");
+		System.out.println(response.get());
+		System.out.println(responseStr[0] + "  " + responseStr[1]);
+/*		
+		List<Object> responseList = p.syncAndReturnAll();
+		jedis.disconnect();
+		System.out.println("is responseList null? " + (responseList==null));
+		for(Object response : responseList) {
+			ArrayList<String> nextMinScoreList = 
+					(ArrayList<String>) response;
+			double nextMinScore = Double.parseDouble(nextMinScoreList.get(0));	
+			Long numUpdates = Long.parseLong(nextMinScoreList.get(1));
+			System.out.println("nextMinScore: " + nextMinScore);
+			System.out.println("numUpdates: " + numUpdates);
+		}
+*/		
+	}
+	
+	private static void testFactPlusPlus(String file) throws Exception {
+		File ontFile = new File(file);
 		IRI documentIRI = IRI.create(ontFile);
 		OWLOntologyManager manager = OWLManager.createOWLOntologyManager();	
 		OWLOntology ontology = manager.loadOntologyFromOntologyDocument(documentIRI);

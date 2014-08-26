@@ -20,30 +20,27 @@ import redis.clients.jedis.Response;
 public class Type1_1AxiomProcessorBase implements AxiomProcessor {
 
 	private String scriptSingleConcept =  
-		"local elementScore = redis.call('ZRANGE', " +
-			"KEYS[1], -1, -1, 'WITHSCORES') " +
-		"local unique = 0 " +
-		"local t= {} " +
-		"local minScore = table.remove(ARGV) " +
-		"local toBeAddedList = redis.call(" +
-			"'ZRANGEBYSCORE', KEYS[1], minScore, '+inf') " +
-		"local escore " +
-		"local score " +
-		"local ret " +
-		"local unique = 0 " +
-		"for index1,value1 in pairs(ARGV) do " +
-			"escore = redis.call('ZRANGE', value1, -1, -1, 'WITHSCORES') " +
-			"score = escore[2] + " + Constants.SCORE_INCREMENT + " " +
-			"for index2,value2 in pairs(toBeAddedList) do " +
-				"if(not redis.call('ZSCORE', value1, value2)) then " +
-					"ret = redis.call('ZADD', value1, score, value2) " +
-					"unique = unique + ret " +
+			"local elementScore = redis.call('ZRANGE', " +
+					"KEYS[1], -1, -1, 'WITHSCORES') " +
+			"local unique = 0 " +
+			"local minScore = table.remove(ARGV) " +
+			"local toBeAddedList = redis.call(" +
+				"'ZRANGEBYSCORE', KEYS[1], minScore, '+inf') " +
+			"local escore " +
+			"local score " +
+			"local ret " +
+			"local unique = 0 " +
+			"for index1,value1 in pairs(ARGV) do " +
+				"escore = redis.call('ZRANGE', value1, -1, -1, 'WITHSCORES') " +
+				"score = escore[2] + " + Constants.SCORE_INCREMENT + " " +
+				"for index2,value2 in pairs(toBeAddedList) do " +
+					"if(not redis.call('ZSCORE', value1, value2)) then " +
+						"ret = redis.call('ZADD', value1, score, value2) " +
+						"unique = unique + ret " +
+					"end " +
 				"end " +
 			"end " +
-		"end " +
-		"t[1] = tostring(elementScore[2]) " +
-		"t[2] = tostring(unique) " +
-		"return t ";
+			"return tostring(elementScore[2]) .. ':' .. tostring(unique) ";
 	protected Jedis resultStore;
 	protected Jedis scoreDB;
 	private List<String> keysToAdd;
@@ -90,7 +87,7 @@ public class Type1_1AxiomProcessorBase implements AxiomProcessor {
 		if(chunkChannelHost != null)
 			chunkChannelHost.disconnect();
 	}
-	
+/*	
 	private boolean applyRule(String axiomKey, 
 			Set<String> axiomValue) throws Exception {
 		List<String> axiomValueList = new ArrayList<String>(axiomValue);
@@ -116,6 +113,52 @@ public class Type1_1AxiomProcessorBase implements AxiomProcessor {
 				keysToAdd.add(superClass);
 		}			
 		return (numUpdates > 0)?true:false;
+	}
+*/	
+	private boolean applyRule(List<String> chunkKeys, 
+			List<Response<Set<String>>> axiomValueResponseList) {
+		HostInfo resultHostInfo = propertyFileHandler.getResultNode();
+		PipelineManager pipelineManager = new PipelineManager(
+				Collections.singletonList(resultHostInfo), 
+				propertyFileHandler.getPipelineQueueSize());
+		int i = 0;
+		boolean axiomUpdate;
+		boolean allAxiomUpdate = false;
+		List<Integer> nonEmptyIndices = new ArrayList<Integer>(
+				chunkKeys.size());
+		for(String axiomKey : chunkKeys) {			
+			if(!axiomValueResponseList.get(i).get().isEmpty()) {
+				nonEmptyIndices.add(i);
+				List<String> axiomValueList = new ArrayList<String>(
+						axiomValueResponseList.get(i).get());
+				double score = Util.getScore(scoreDB, axiomKey);
+				String exclScore = "(" + score;
+				axiomValueList.add(exclScore);	
+				pipelineManager.peval(resultHostInfo, scriptSingleConcept, 
+						Collections.singletonList(axiomKey), 
+						axiomValueList, AxiomDB.NON_ROLE_DB);
+			}
+			i++;
+		}
+		pipelineManager.synchAndCloseAll(AxiomDB.NON_ROLE_DB);
+		List<Response<String>> evalResponseList = 
+				new ArrayList<Response<String>>(
+						pipelineManager.getEvalResponseList());
+		pipelineManager.resetSynchResponse();
+		i = 0;
+		for(int index : nonEmptyIndices) {
+			String[] nextMinScoreUpdates = 
+					evalResponseList.get(i).get().split(":");
+			double nextMinScore = Double.parseDouble(nextMinScoreUpdates[0]);		
+			Util.setScore(scoreDB, chunkKeys.get(index), nextMinScore);				
+			Long numUpdates = Long.parseLong(nextMinScoreUpdates[1]);
+			axiomUpdate = (numUpdates > 0)?true:false;			
+			if(axiomUpdate) 
+				keysToAdd.addAll(axiomValueResponseList.get(index).get());			
+			allAxiomUpdate = allAxiomUpdate || axiomUpdate;
+			i++;
+		}
+		return allAxiomUpdate;
 	}
 	
 	@Override
@@ -151,10 +194,10 @@ public class Type1_1AxiomProcessorBase implements AxiomProcessor {
 					keysHostInfo.toString() + ": " + Util.getElapsedTimeSecs(
 							keysReadStartTime));
 		
-		List<Response<Set<String>>> responseList = new ArrayList<Response<Set<String>>>(
+		List<Response<Set<String>>> responseList = 
+				new ArrayList<Response<Set<String>>>(
 				pipelinedReader.getZrangeByScoreResponseList());
 		pipelinedReader.resetSynchResponse();
-		int i = 0;
 		//TODO: use threading as in 2-way joins. Don't wait until everything is
 		//		read(pipelinedReader)
 
@@ -162,14 +205,8 @@ public class Type1_1AxiomProcessorBase implements AxiomProcessor {
 		if(isInstrumentationEnabled)
 			applyRuleStartTime = System.nanoTime();
 		
-		for(String axiomKey : chunkKeys) {			
-			if(responseList.get(i).get().isEmpty())
-				axiomUpdate = false;
-			else
-				axiomUpdate = applyRule(axiomKey, responseList.get(i).get());
-			continueProcessing = continueProcessing || axiomUpdate;
-			i++;
-		}
+		axiomUpdate = applyRule(chunkKeys, responseList);
+		continueProcessing = continueProcessing || axiomUpdate;
 		responseList.clear();
 		
 		if(isInstrumentationEnabled)

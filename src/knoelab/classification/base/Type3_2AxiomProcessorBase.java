@@ -1,6 +1,7 @@
 package knoelab.classification.base;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -25,6 +26,9 @@ public class Type3_2AxiomProcessorBase implements AxiomProcessor {
 	private String insertionScript;
 	private Jedis chunkChannelHost;
 	private StringBuilder hostPortTypeMessage;
+	private HostInfo resultHostInfo;
+	private PipelineManager resultStorePipelineMgr;
+	private List<Response<String>> evalResponseList;
 	
 	protected boolean isInstrumentationEnabled;
 	protected long initStartTime;
@@ -50,9 +54,13 @@ public class Type3_2AxiomProcessorBase implements AxiomProcessor {
 		roleStore.select(AxiomDB.ROLE_DB.getDBIndex());
 		scoreDB = new Jedis(machineName, port, Constants.INFINITE_TIMEOUT);
 		scoreDB.select(AxiomDB.SCORE_DB.getDBIndex());
-		HostInfo resultHostInfo = propertyFileHandler.getResultNode();
+		resultHostInfo = propertyFileHandler.getResultNode();
 		resultStore = new Jedis(resultHostInfo.getHost(), 
 							resultHostInfo.getPort(), Constants.INFINITE_TIMEOUT);
+		resultStorePipelineMgr = new PipelineManager(
+				Collections.singletonList(resultHostInfo), 
+				propertyFileHandler.getPipelineQueueSize());
+		
 		// need to connect explicitly for lua scripting - gives a NPE if not done.
 		resultStore.connect();
 		
@@ -85,7 +93,7 @@ public class Type3_2AxiomProcessorBase implements AxiomProcessor {
 				"end " +
 			"end " +
 		  "end " +
-		  "return unique ";
+		  "return tostring(unique) ";
 	}
 	
 	@Override
@@ -136,11 +144,20 @@ public class Type3_2AxiomProcessorBase implements AxiomProcessor {
 		
 		for(String axiomKey : chunkKeys) {
 			Set<Tuple> response1 = zrangeResponseList1.get(i).get();
-			if(!response1.isEmpty()) {
-				axiomUpdate = applyRule(axiomKey, response1, whichDB);
-				continueProcessing = continueProcessing || axiomUpdate;
-			}
+			if(!response1.isEmpty()) 
+				applyRule(axiomKey, response1, whichDB);
 			i++;
+		}
+		
+		resultStorePipelineMgr.synchAndCloseAll(AxiomDB.NON_ROLE_DB);
+		evalResponseList = new ArrayList<Response<String>>(
+							resultStorePipelineMgr.getEvalResponseList());
+		resultStorePipelineMgr.resetSynchResponse();
+		
+		for(Response<String> response : evalResponseList) {
+			Long numUpdates = Long.parseLong(response.get());
+			axiomUpdate = (numUpdates > 0)?true:false;
+			continueProcessing = continueProcessing || axiomUpdate;
 		}
 		
 		if(isInstrumentationEnabled)
@@ -162,7 +179,7 @@ public class Type3_2AxiomProcessorBase implements AxiomProcessor {
 	 * @param axiomValue
 	 * @param whichDB true represents DB-0 and false represents DB-1 
 	 */
-	private boolean applyRule(String axiomKey, Set<Tuple> axiomValueScore, 
+	private void applyRule(String axiomKey, Set<Tuple> axiomValueScore, 
 			boolean whichDB) throws Exception {
 		Set<String> rolePairs = null;
 		if(whichDB)
@@ -171,7 +188,7 @@ public class Type3_2AxiomProcessorBase implements AxiomProcessor {
 			rolePairs = localStore.zrange(axiomKey, 0, -1);	
 		
 		if(rolePairs.isEmpty())
-			return false;
+			return;
 		
 		List<String> axiomValue = new ArrayList<String>(axiomValueScore.size());
 		double score = 0;
@@ -181,28 +198,29 @@ public class Type3_2AxiomProcessorBase implements AxiomProcessor {
 				score = t.getScore();
 		}
 		
-		Long numUpdates = new Long(0);
+//		Long numUpdates = new Long(0);
 		if(whichDB) {		
 			if(!axiomValue.isEmpty() && !rolePairs.isEmpty()) {
-//				long startTime = System.nanoTime();
-				numUpdates = (Long)resultStore.eval(insertionScript, axiomValue, 
-						new ArrayList<String>(rolePairs));
-//				long endTime = System.nanoTime();
-//				totalDiffTime = totalDiffTime + (endTime - startTime);
+//				numUpdates = (Long)resultStore.eval(insertionScript, axiomValue, 
+//						new ArrayList<String>(rolePairs));
+				resultStorePipelineMgr.peval(resultHostInfo, 
+						insertionScript, axiomValue, 
+						new ArrayList<String>(rolePairs), 
+						AxiomDB.NON_ROLE_DB);
 			}
 		}
 		else {
 			if(!axiomValue.isEmpty() && !rolePairs.isEmpty()) {
-//				long startTime = System.nanoTime();
-				numUpdates = (Long)resultStore.eval(insertionScript, 
-						new ArrayList<String>(rolePairs), axiomValue);
-//				long endTime = System.nanoTime();
-//				totalDiffTime = totalDiffTime + (endTime - startTime);
+//				numUpdates = (Long)resultStore.eval(insertionScript, 
+//						new ArrayList<String>(rolePairs), axiomValue);
+				resultStorePipelineMgr.peval(resultHostInfo, 
+						insertionScript, new ArrayList<String>(rolePairs), 
+						axiomValue, AxiomDB.NON_ROLE_DB);
 			}
 		}
 		setScore(axiomKey, score, whichDB);
 //		System.out.println("NumUpdates: " + numUpdates);
-		return (numUpdates > 0)?true:false;
+//		return (numUpdates > 0)?true:false;
 	}
 	
 	private void setScore(String axiomKey, double score, boolean whichDB) {
