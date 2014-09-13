@@ -117,7 +117,7 @@ public class Type5AxiomProcessor extends Type5AxiomProcessorBase {
 			while(nextIteration) {
 				
 				long nextIterKeysStartTime = 0;
-				if(isInstrumentationEnabled)
+//				if(isInstrumentationEnabled)
 					nextIterKeysStartTime = System.nanoTime();
 				
 				System.out.println("\nStarting iteration-" + iterationCount);
@@ -239,7 +239,7 @@ public class Type5AxiomProcessor extends Type5AxiomProcessorBase {
 			if(isWorkStealingEnabled) {	
 				
 				long workStealingStartTime = 0;
-				if(isInstrumentationEnabled)
+//				if(isInstrumentationEnabled)
 					workStealingStartTime = System.nanoTime();
 				
 				//wait till all nodes send in their progress messages
@@ -247,7 +247,7 @@ public class Type5AxiomProcessor extends Type5AxiomProcessorBase {
 				workStealer.checkAndStealWork(progressMessageHandler, 
 						currentIncrement, iterationCount);
 				
-				if(isInstrumentationEnabled)
+//				if(isInstrumentationEnabled)
 					System.out.println("T5: Time spent in helping busy " +
 							"nodes: " + Util.getElapsedTimeSecs(
 									workStealingStartTime));
@@ -256,13 +256,13 @@ public class Type5AxiomProcessor extends Type5AxiomProcessorBase {
 						continueProcessing, iterationCount);
 				
 				long blockingWaitStartTime = 0;
-				if(isInstrumentationEnabled)
+//				if(isInstrumentationEnabled)
 					blockingWaitStartTime = System.nanoTime();
 				
 				nextIteration = communicationHandler.blockingWaitAndGetStatus(
 									channel, iterationCount);
 				
-				if(isInstrumentationEnabled)
+//				if(isInstrumentationEnabled)
 					System.out.println("T5: Time spent on blocking wait: " + 
 							Util.getElapsedTimeSecs(blockingWaitStartTime));
 				
@@ -280,7 +280,7 @@ public class Type5AxiomProcessor extends Type5AxiomProcessorBase {
 			}
 				iterationCount++;
 				
-				if(isInstrumentationEnabled)
+//				if(isInstrumentationEnabled)
 					System.out.println("T5: Time taken for iteration: " + 
 							Util.getElapsedTimeSecs(nextIterKeysStartTime));
 				System.out.println("\n");

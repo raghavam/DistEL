@@ -108,7 +108,7 @@ public class Type3_2AxiomProcessor extends Type3_2AxiomProcessorBase {
 			while(nextIteration) {		
 				
 				long nextIterKeysStartTime = 0;
-				if(isInstrumentationEnabled)
+//				if(isInstrumentationEnabled)
 					nextIterKeysStartTime = System.nanoTime();
 				
 				System.out.println("\nStarting iteration-" + iterationCount);
@@ -141,7 +141,7 @@ public class Type3_2AxiomProcessor extends Type3_2AxiomProcessorBase {
 					prepareForNextIteration(iterationCount);
 					iterationCount++;
 					System.out.println("nextIteration? " + nextIteration);	
-					if(isInstrumentationEnabled)
+//					if(isInstrumentationEnabled)
 						System.out.println("T32: Time taken for iteration: " + 
 								Util.getElapsedTimeSecs(nextIterKeysStartTime));
 					continue;
@@ -340,7 +340,7 @@ public class Type3_2AxiomProcessor extends Type3_2AxiomProcessorBase {
 				prepareForNextIteration(iterationCount);
 				iterationCount++;
 				
-				if(isInstrumentationEnabled)
+//				if(isInstrumentationEnabled)
 					System.out.println("T32: Time taken for iteration: " + 
 							Util.getElapsedTimeSecs(nextIterKeysStartTime));
 				System.out.println("\n");
@@ -387,7 +387,7 @@ public class Type3_2AxiomProcessor extends Type3_2AxiomProcessorBase {
 		if(isWorkStealingEnabled) {
 			
 			long workStealingStartTime = 0;
-			if(isInstrumentationEnabled)
+//			if(isInstrumentationEnabled)
 				workStealingStartTime = System.nanoTime();
 			
 			//wait till all nodes send in their progress messages
@@ -395,7 +395,7 @@ public class Type3_2AxiomProcessor extends Type3_2AxiomProcessorBase {
 			workStealer.checkAndStealWork(progressMessageHandler, 
 					currentIncrement, iterationCount);
 			
-			if(isInstrumentationEnabled)
+//			if(isInstrumentationEnabled)
 				System.out.println("T32: Time spent in helping busy " +
 						"nodes: " + Util.getElapsedTimeSecs(
 								workStealingStartTime));
@@ -404,13 +404,13 @@ public class Type3_2AxiomProcessor extends Type3_2AxiomProcessorBase {
 				continueProcessing, iterationCount);
 		
 		long blockingWaitStartTime = 0;
-		if(isInstrumentationEnabled)
+//		if(isInstrumentationEnabled)
 			blockingWaitStartTime = System.nanoTime();
 		
 		boolean nextIteration = communicationHandler.blockingWaitAndGetStatus(
 							channel, iterationCount);
 		
-		if(isInstrumentationEnabled)
+//		if(isInstrumentationEnabled)
 			System.out.println("T32: Time spent on blocking wait: " + 
 					Util.getElapsedTimeSecs(blockingWaitStartTime));
 		

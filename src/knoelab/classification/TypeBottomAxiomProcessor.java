@@ -105,7 +105,7 @@ public class TypeBottomAxiomProcessor extends TypeBottomAxiomProcessorBase {
 			while(nextIteration) {
 				
 				long nextIterKeysStartTime = 0;
-				if(isInstrumentationEnabled)
+//				if(isInstrumentationEnabled)
 					nextIterKeysStartTime = System.nanoTime();
 				
 				System.out.println("Starting iteration-" + iterationCount);
@@ -124,6 +124,7 @@ public class TypeBottomAxiomProcessor extends TypeBottomAxiomProcessorBase {
 							"from resultStore: " + 
 						Util.getElapsedTimeSecs(allKeysStartTime));
 				
+				System.out.println("Keys: " + elementScores.size());
 				//calculate total chunks and get current chunk. 			
 				totalChunks = Math.ceil((double)elementScores.size()/chunkSize);
 				localStore.set(Constants.TOTAL_CHUNKS, Double.toString(totalChunks));
@@ -224,7 +225,7 @@ public class TypeBottomAxiomProcessor extends TypeBottomAxiomProcessorBase {
 				}
 				
 				long workStealingStartTime = 0;
-				if(isInstrumentationEnabled)
+//				if(isInstrumentationEnabled)
 					workStealingStartTime = System.nanoTime();
 				
 				//wait till all nodes send in their progress messages
@@ -232,7 +233,7 @@ public class TypeBottomAxiomProcessor extends TypeBottomAxiomProcessorBase {
 				workStealer.checkAndStealWork(progressMessageHandler, 
 						currentIncrement, iterationCount);
 				
-				if(isInstrumentationEnabled)
+//				if(isInstrumentationEnabled)
 					System.out.println("TBot: Time spent in helping busy " +
 							"nodes: " + Util.getElapsedTimeSecs(
 									workStealingStartTime));
@@ -241,13 +242,13 @@ public class TypeBottomAxiomProcessor extends TypeBottomAxiomProcessorBase {
 						continueProcessing, iterationCount);
 				
 				long blockingWaitStartTime = 0;
-				if(isInstrumentationEnabled)
+//				if(isInstrumentationEnabled)
 					blockingWaitStartTime = System.nanoTime();
 				
 				nextIteration = communicationHandler.blockingWaitAndGetStatus(
 									channel, iterationCount);
 				
-				if(isInstrumentationEnabled)
+//				if(isInstrumentationEnabled)
 					System.out.println("TBot: Time spent on blocking wait: " + 
 							Util.getElapsedTimeSecs(blockingWaitStartTime));
 				
@@ -264,7 +265,7 @@ public class TypeBottomAxiomProcessor extends TypeBottomAxiomProcessorBase {
 			}
 				iterationCount++;
 				
-				if(isInstrumentationEnabled)
+//				if(isInstrumentationEnabled)
 					System.out.println("TBot: Time taken for iteration: " + 
 							Util.getElapsedTimeSecs(nextIterKeysStartTime));
 				System.out.println("\n");

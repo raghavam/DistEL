@@ -143,7 +143,7 @@ public class Type3_1AxiomProcessor extends Type3_1AxiomProcessorBase {
 			while(nextIteration) {
 				
 				long nextIterKeysStartTime = 0;
-				if(isInstrumentationEnabled)
+//				if(isInstrumentationEnabled)
 					nextIterKeysStartTime = System.nanoTime();
 				
 				System.out.println("\nStarting iteration-" + iterationCount);
@@ -169,8 +169,8 @@ public class Type3_1AxiomProcessor extends Type3_1AxiomProcessorBase {
 				p.sync();
 				chunkCount = 0;
 				
+				System.out.println("Keys: " + keySet.size());
 				if(isInstrumentationEnabled) {
-					System.out.println("Keys: " + keySet.size());
 					System.out.println("T31: Time taken to setup " +
 							"iteration: " + Util.getElapsedTimeSecs(
 									nextIterKeysStartTime));
@@ -261,7 +261,7 @@ public class Type3_1AxiomProcessor extends Type3_1AxiomProcessorBase {
 				}
 				
 				long workStealingStartTime = 0;
-				if(isInstrumentationEnabled)
+//				if(isInstrumentationEnabled)
 					workStealingStartTime = System.nanoTime();
 				
 				//wait till all nodes send in their progress messages
@@ -269,7 +269,7 @@ public class Type3_1AxiomProcessor extends Type3_1AxiomProcessorBase {
 				workStealer.checkAndStealWork(progressMessageHandler, 
 						currentIncrement, iterationCount);
 				
-				if(isInstrumentationEnabled)
+//				if(isInstrumentationEnabled)
 					System.out.println("T31: Time spent in helping busy " +
 							"nodes: " + Util.getElapsedTimeSecs(
 									workStealingStartTime));
@@ -278,13 +278,13 @@ public class Type3_1AxiomProcessor extends Type3_1AxiomProcessorBase {
 						continueProcessing, iterationCount);
 				
 				long blockingWaitStartTime = 0;
-				if(isInstrumentationEnabled)
+//				if(isInstrumentationEnabled)
 					blockingWaitStartTime = System.nanoTime();
 				
 				nextIteration = communicationHandler.blockingWaitAndGetStatus(
 									channel, iterationCount);
 				
-				if(isInstrumentationEnabled)
+//				if(isInstrumentationEnabled)
 					System.out.println("T31: Time spent on blocking wait: " + 
 							Util.getElapsedTimeSecs(blockingWaitStartTime));
 				
@@ -303,7 +303,7 @@ public class Type3_1AxiomProcessor extends Type3_1AxiomProcessorBase {
 			}
 				iterationCount++;
 				
-				if(isInstrumentationEnabled)
+//				if(isInstrumentationEnabled)
 					System.out.println("T31: Time taken for iteration: " + 
 							Util.getElapsedTimeSecs(nextIterKeysStartTime));
 				System.out.println("\n");
