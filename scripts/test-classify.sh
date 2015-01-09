@@ -7,4 +7,4 @@ fi
 
 echo -e "Checking the progress of classifier...\n"
 
-java -Xms6g -Xmx6g -cp dist/DistEL.jar:lib/jedis-2.0.0-build.jar knoelab.classification.test.ELClassifierTest $1
+java -Xms6g -Xmx6g -cp dist/DistEL.jar:lib/jedis-2.6.2.jar knoelab.classification.test.ELClassifierTest $1

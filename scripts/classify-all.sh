@@ -1,5 +1,5 @@
 #!/bin/bash
 
 echo -e "\nClassifier starts....\n"
-pssh -h hosts.txt -t 0 -o output -e error -I < scripts/classifier.sh
+pssh -p 500 -h hosts.txt -t 0 -o output -e error -I < scripts/classifier.sh
 

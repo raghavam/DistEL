@@ -6,7 +6,7 @@ if [ $# -ne 1 ]; then
 fi
 
 #echo -e "Rearranging results...\n"
-#java -cp dist/DistEL.jar:lib/jedis-2.0.0-build.jar knoelab.classification.test.ResultRearranger
+#java -cp dist/DistEL.jar:lib/jedis-2.6.2.jar knoelab.classification.test.ResultRearranger
 
 echo -e "\nWriting diff results...\n"
-java -cp dist/DistEL.jar:lib/jedis-2.1.0.jar knoelab.classification.test.ResultDiffWriter $1
+java -cp dist/DistEL.jar:lib/jedis-2.6.2.jar knoelab.classification.test.ResultDiffWriter $1

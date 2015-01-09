@@ -2,7 +2,7 @@
 
 if [ $# -ne 3 ]; then
         echo -e "\nrequires nodes file, user name, properties file as input\n"
-	echo -e "on AWS EC2, to get list of nodes use, ec2dnic -O <Access ID> -W <Secret Key> -H | cut -f13 | tail -n +2 | grep -v '^$'"
+	echo -e "on AWS EC2, to get list of nodes use, ec2dnic -O <Access ID> -W <Secret Key> -H -F instance-state-name=running | cut -f18 | grep -v '^$'"
         exit 1
 fi
 
@@ -45,7 +45,7 @@ ssh "$2@$i" "if [ ! -d ~/DistributedReasoning/curr_approach ]; then mkdir -p ~/D
 if [ ! -d ~/DistributedReasoning/curr_approach/dist ]; then mkdir -p ~/DistributedReasoning/curr_approach/dist; fi
 if [ ! -d ~/DistributedReasoning/curr_approach/lib ]; then mkdir -p ~/DistributedReasoning/curr_approach/lib; fi
 "
-scp lib/jedis-2.5.1.jar "$2@$i":~/DistributedReasoning/curr_approach/lib/
+scp lib/jedis-2.6.2.jar "$2@$i":~/DistributedReasoning/curr_approach/lib/
 scp dist/* "$2@$i":~/DistributedReasoning/curr_approach/dist/
 scp ShardInfo.properties "$2@$i":~/DistributedReasoning/curr_approach/
 done
