@@ -648,7 +648,7 @@ public class AxiomLoader {
 		if(axioms.isEmpty())
 			return;
 		List<HostInfo> type31HostInfoList = 
-			typeHostMap.get(AxiomDistributionType.CR_TYPE3_1);
+				getHostInfoList(AxiomDistributionType.CR_TYPE3_1);
 		List<JedisShardInfo> type31ShardInfoList = 
 			new ArrayList<JedisShardInfo>();
 		for(HostInfo hostInfo : type31HostInfoList)
@@ -744,7 +744,7 @@ public class AxiomLoader {
 		if(axioms.isEmpty() && dataPropAssertions.isEmpty())
 			return;
 		List<HostInfo> type2HostInfoList = 
-			typeHostMap.get(AxiomDistributionType.CR_TYPE2);
+				getHostInfoList(AxiomDistributionType.CR_TYPE2);
 		List<JedisShardInfo> type2ShardInfoList = new ArrayList<JedisShardInfo>();
 		for(HostInfo hostInfo : type2HostInfoList)
 			type2ShardInfoList.add(new JedisShardInfo(hostInfo.getHost(), 
@@ -841,7 +841,7 @@ public class AxiomLoader {
 				dataPropDomainAxioms.isEmpty())
 			return;
 		List<HostInfo> type2HostInfoList = 
-			typeHostMap.get(AxiomDistributionType.CR_TYPE2);
+				getHostInfoList(AxiomDistributionType.CR_TYPE2);
 		List<JedisShardInfo> type2ShardInfoList = new ArrayList<JedisShardInfo>();
 		for(HostInfo hostInfo : type2HostInfoList)
 			type2ShardInfoList.add(new JedisShardInfo(hostInfo.getHost(), 
@@ -893,8 +893,8 @@ public class AxiomLoader {
 			String localKeys) throws Exception {
 		if(axioms.isEmpty())
 			return;
-		List<HostInfo> type12HostInfoList = 
-			typeHostMap.get(AxiomDistributionType.CR_TYPE1_2);
+		List<HostInfo> type12HostInfoList = getHostInfoList(
+				AxiomDistributionType.CR_TYPE1_2);
 		List<JedisShardInfo> type12ShardInfoList = new ArrayList<JedisShardInfo>();
 		for(HostInfo hostInfo : type12HostInfoList)
 			type12ShardInfoList.add(new JedisShardInfo(hostInfo.getHost(), 
@@ -953,7 +953,7 @@ public class AxiomLoader {
 		if(axioms.isEmpty())
 			return;
 		List<HostInfo> type1HostInfoList = 
-			typeHostMap.get(AxiomDistributionType.CR_TYPE1_1);
+				getHostInfoList(AxiomDistributionType.CR_TYPE1_1);
 		List<JedisShardInfo> type1ShardInfoList = new ArrayList<JedisShardInfo>();
 		for(HostInfo hostInfo : type1HostInfoList)
 			type1ShardInfoList.add(new JedisShardInfo(hostInfo.getHost(), 
@@ -1045,7 +1045,7 @@ public class AxiomLoader {
 		if(axioms.isEmpty())
 			return;
 		List<HostInfo> type4HostInfoList = 
-			typeHostMap.get(AxiomDistributionType.CR_TYPE4);
+				getHostInfoList(AxiomDistributionType.CR_TYPE4);
 		List<JedisShardInfo> type4Shards = new ArrayList<JedisShardInfo>();
 		for(HostInfo hinfo : type4HostInfoList) {
 			type4Shards.add(new JedisShardInfo(hinfo.getHost(), 
@@ -1078,7 +1078,7 @@ public class AxiomLoader {
 		if(axioms.isEmpty())
 			return;
 		List<HostInfo> type5HostInfoList = 
-			typeHostMap.get(AxiomDistributionType.CR_TYPE5);
+				getHostInfoList(AxiomDistributionType.CR_TYPE5);
 		List<JedisShardInfo> type5Shards = new ArrayList<JedisShardInfo>();
 		for(HostInfo hinfo : type5HostInfoList) {
 			type5Shards.add(new JedisShardInfo(hinfo.getHost(), 
@@ -1121,6 +1121,26 @@ public class AxiomLoader {
 		finally {
 			type5ShardedJedis.disconnect();
 		}
+	}
+	
+	/**
+	 * typeHost map is not used and instead this method should be used for
+	 * internal use primarily to retain the order of populating hosts in the 
+	 * list. If the order varies, sharding keys destination changes. If read 
+	 * from DB everytime, the order should be the same.
+	 * @param axiomType
+	 * @return
+	 */
+	private List<HostInfo> getHostInfoList(AxiomDistributionType axiomType) {
+		Set<String> hosts = idReader.smembers(axiomType.toString());
+		List<HostInfo> hostInfoList = new ArrayList<HostInfo>(hosts.size());
+		for(String host : hosts) {
+			String[] hostPort = host.split(":");
+			HostInfo hostInfo = new HostInfo(hostPort[0], 
+					Integer.parseInt(hostPort[1]));
+			hostInfoList.add(hostInfo);
+		}
+		return hostInfoList;
 	}
 	
 	private void mapConceptToID(OWLOntology ontology) throws Exception {
