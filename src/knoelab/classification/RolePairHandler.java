@@ -392,7 +392,7 @@ public class RolePairHandler {
 		//db-0 for lhs1 chains; r < st type axioms
 		if(roleChainLHS1 == null) 
 			roleChainLHS1 = type5ShardedJedis.smembers(conceptRole.get(1));
-	
+		
 		if((roleChainLHS1 != null) && (!roleChainLHS1.isEmpty())) {
 			roleChainLHS1Cache.put(conceptRole.get(1), roleChainLHS1);
 			JedisShardInfo shardInfo = type5ShardedJedis.getShardInfo(key);
@@ -403,7 +403,7 @@ public class RolePairHandler {
 						hinfo, key, val, AxiomDB.ROLE_DB, false);
 			type5PipelineManager1.psadd(hinfo, localKeys, key, 
 					AxiomDB.ROLE_DB, false);		
-		}	
+		}
 		// key: Xr, value: B --> useful for processing role chains 		
 		//check if this 'r' is in lhs2 of p o q < t (i.e. equals q)
 		Set<String> roleChainLHS2 = roleChainLHS2Cache.get(conceptRole.get(1));
