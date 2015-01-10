@@ -321,7 +321,6 @@ public class RolePairHandler {
 			String[] hostPort = hostInfo.split(":");
 			int port = Integer.parseInt(hostPort[1]);
 			HostInfo hinfo = new HostInfo(hostPort[0], port);
-			System.out.println("Type5 shard: " + hinfo.toString());
 			type5HostsInfo.add(hinfo);
 			type5Shards.add(new JedisShardInfo(hostPort[0], 
 					port, Constants.INFINITE_TIMEOUT));
@@ -409,12 +408,6 @@ public class RolePairHandler {
 						hinfo, key, val, AxiomDB.ROLE_DB, false);
 			type5PipelineManager1.psadd(hinfo, localKeys, key, 
 					AxiomDB.ROLE_DB, false);		
-		}
-		else {
-			if(conceptRole.get(1).equals("02192")) {
-				System.out.println("02192 not found in Type5. Key: " + key + 
-						"  value: " + value);
-			}
 		}
 		// key: Xr, value: B --> useful for processing role chains 		
 		//check if this 'r' is in lhs2 of p o q < t (i.e. equals q)
