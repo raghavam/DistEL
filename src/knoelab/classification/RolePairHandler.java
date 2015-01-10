@@ -405,6 +405,12 @@ public class RolePairHandler {
 			type5PipelineManager1.psadd(hinfo, localKeys, key, 
 					AxiomDB.ROLE_DB, false);		
 		}
+		else {
+			if(conceptRole.get(1).equals("02192")) {
+				System.out.println("02192 not found in Type5. Key: " + key + 
+						"  value: " + value);
+			}
+		}
 		// key: Xr, value: B --> useful for processing role chains 		
 		//check if this 'r' is in lhs2 of p o q < t (i.e. equals q)
 		Set<String> roleChainLHS2 = roleChainLHS2Cache.get(conceptRole.get(1));
