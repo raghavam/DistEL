@@ -316,6 +316,7 @@ public class RolePairHandler {
 			String[] hostPort = hostInfo.split(":");
 			int port = Integer.parseInt(hostPort[1]);
 			HostInfo hinfo = new HostInfo(hostPort[0], port);
+			System.out.println("Type5 shard: " + hinfo.toString());
 			type5HostsInfo.add(hinfo);
 			type5Shards.add(new JedisShardInfo(hostPort[0], 
 					port, Constants.INFINITE_TIMEOUT));

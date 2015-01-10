@@ -1081,6 +1081,7 @@ public class AxiomLoader {
 				getHostInfoList(AxiomDistributionType.CR_TYPE5);
 		List<JedisShardInfo> type5Shards = new ArrayList<JedisShardInfo>();
 		for(HostInfo hinfo : type5HostInfoList) {
+			System.out.println("Type5 shard (load time): " + hinfo.toString());
 			type5Shards.add(new JedisShardInfo(hinfo.getHost(), 
 					hinfo.getPort(), Constants.INFINITE_TIMEOUT));
 		}
