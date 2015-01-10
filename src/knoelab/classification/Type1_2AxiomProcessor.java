@@ -65,10 +65,12 @@ public class Type1_2AxiomProcessor extends Type1_2AxiomProcessorBase {
 							Constants.INFINITE_TIMEOUT);
 		localStore.connect();
 		channel = localStore.get(propertyFileHandler.getChannelKey());
-		type1Hosts = localStore.smembers(
-							AxiomDistributionType.CR_TYPE1_1.toString());
-		type1Hosts.addAll(localStore.smembers(
-					AxiomDistributionType.CR_TYPE1_2.toString()));
+		type1Hosts = localStore.zrange(
+							AxiomDistributionType.CR_TYPE1_1.toString(), 
+							Constants.RANGE_BEGIN, Constants.RANGE_END);
+		type1Hosts.addAll(localStore.zrange(
+					AxiomDistributionType.CR_TYPE1_2.toString(), 
+					Constants.RANGE_BEGIN, Constants.RANGE_END));
 		type1Stores = new ArrayList<Jedis>();
 		for(String s : type1Hosts) {
 			String[] hostPort = s.split(":");

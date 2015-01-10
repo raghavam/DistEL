@@ -199,8 +199,9 @@ public class RolePairHandler {
 	}
 */	
 	private void initType2Shards() {
-		Set<String> type2Hosts = localStore.smembers(
-				AxiomDistributionType.CR_TYPE2.toString());
+		Set<String> type2Hosts = localStore.zrange(
+				AxiomDistributionType.CR_TYPE2.toString(), 
+				Constants.RANGE_BEGIN, Constants.RANGE_END);
 		if(type2Hosts.isEmpty()) {
 			type2ShardedJedis = null;
 			return;
@@ -220,8 +221,9 @@ public class RolePairHandler {
 			typeBottomShardedJedis = null;
 			return;
 		}
-		Set<String> typeBottomHosts = localStore.smembers(
-				AxiomDistributionType.CR_TYPE_BOTTOM.toString());
+		Set<String> typeBottomHosts = localStore.zrange(
+				AxiomDistributionType.CR_TYPE_BOTTOM.toString(), 
+				Constants.RANGE_BEGIN, Constants.RANGE_END);
 		List<JedisShardInfo> typeBottomShards = new ArrayList<JedisShardInfo>();
 		List<HostInfo> typeBottomHostInfoList = new ArrayList<HostInfo>();
 		typeBottomHostKVMap = new HashMap<String, Map<String, Set<String>>>();
@@ -240,8 +242,9 @@ public class RolePairHandler {
 	}
 	
 	private void initType32Shards() {
-		Set<String> type32Hosts = localStore.smembers(
-						AxiomDistributionType.CR_TYPE3_2.toString());
+		Set<String> type32Hosts = localStore.zrange(
+						AxiomDistributionType.CR_TYPE3_2.toString(), 
+						Constants.RANGE_BEGIN, Constants.RANGE_END);
 		if(type32Hosts.isEmpty()) {
 			type32ShardedJedis = null;
 			type32HostJedisMap = null;
@@ -270,8 +273,9 @@ public class RolePairHandler {
 	}
 	
 	private void initType4Shards() {
-		Set<String> type4Hosts = localStore.smembers(
-						AxiomDistributionType.CR_TYPE4.toString());
+		Set<String> type4Hosts = localStore.zrange(
+						AxiomDistributionType.CR_TYPE4.toString(), 
+						Constants.RANGE_BEGIN, Constants.RANGE_END);
 		List<JedisShardInfo> type4Shards = new ArrayList<JedisShardInfo>();
 		if(type4Hosts.isEmpty()) {
 			type4ShardedJedis = null;
@@ -304,8 +308,9 @@ public class RolePairHandler {
 		type5HostKVWrapperMap = 
 			new HashMap<String, Map<Integer,KeyValueWrapper>>();
 		type5HostJedisMap = new HashMap<String, Jedis>();
-		Set<String> type5Hosts = localStore.smembers(
-					AxiomDistributionType.CR_TYPE5.toString());
+		Set<String> type5Hosts = localStore.zrange(
+					AxiomDistributionType.CR_TYPE5.toString(), 
+					Constants.RANGE_BEGIN, Constants.RANGE_END);
 		if(type5Hosts.isEmpty()) {
 			type5ShardedJedis = null;
 			type5PipelineManager1 = type5PipelineManager4 = null;

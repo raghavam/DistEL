@@ -59,8 +59,6 @@ public class Type4AxiomProcessor extends Type4AxiomProcessorBase {
 		allChannelsKey = propertyFileHandler.getAllChannelsKey();
 		communicationHandler = new CommunicationHandler(
 				localStore.smembers(allChannelsKey));
-		communicationHandler = new CommunicationHandler(
-				localStore.smembers(allChannelsKey));
 		isWorkStealingEnabled = propertyFileHandler.isWorkStealingEnabled();
 		if(isWorkStealingEnabled) {
 			waitLatch = new CountDownLatch(1);

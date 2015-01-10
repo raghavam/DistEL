@@ -56,4 +56,7 @@ public interface Constants {
 	public final String SEPARATOR_RATE = "@";
 	
 	public final double NANO = 1000000000;
+	
+	public final long RANGE_BEGIN = 0;
+	public final long RANGE_END = -1;
 }

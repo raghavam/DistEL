@@ -74,11 +74,14 @@ import knoelab.classification.pipeline.PipelineManager;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisMonitor;
 import redis.clients.jedis.JedisPubSub;
+import redis.clients.jedis.JedisShardInfo;
 import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.Protocol;
 import redis.clients.jedis.Response;
+import redis.clients.jedis.ShardedJedis;
 import redis.clients.jedis.Transaction;
 import redis.clients.jedis.Tuple;
+import redis.clients.util.Hashing;
 import redis.clients.util.SafeEncoder;
 import uk.ac.manchester.cs.factplusplus.owlapiv3.FaCTPlusPlusReasonerFactory;
 
@@ -127,8 +130,97 @@ public class MiscTest {
 //		testPubSub();		
 //		removeNonELAxioms(args[0]);
 //		checkObjectPropertyRangeAxioms(args[0]);
+//		testPipelineEval();
+//		testReadWriteRedisSpeed();
 		
-		testPipelineEval();
+		testJedisShardingWrite();
+		testJedisShardingRead();
+	}
+	
+	private static void testJedisShardingWrite() {
+		//sharding not giving proper results currently
+		List<JedisShardInfo> type5Shards = new ArrayList<JedisShardInfo>();
+		type5Shards.add(new JedisShardInfo("nimbus5", 6379, 
+				Constants.INFINITE_TIMEOUT));
+		type5Shards.add(new JedisShardInfo("nimbus11", 6379, 
+				Constants.INFINITE_TIMEOUT));
+		ShardedJedis type5ShardedJedis = new ShardedJedis(type5Shards, 
+				Hashing.MURMUR_HASH);
+		type5ShardedJedis.sadd("02192", "0100", "0110");
+		type5ShardedJedis.sadd("02182", "0100", "0110");
+		type5ShardedJedis.close();
+	}
+	
+	private static void testJedisShardingRead() {
+		Jedis jedis = new Jedis("nimbus11", 6379, Constants.INFINITE_TIMEOUT);
+		List<JedisShardInfo> type5Shards = new ArrayList<JedisShardInfo>();
+		type5Shards.add(new JedisShardInfo("nimbus5", 6379, 
+				Constants.INFINITE_TIMEOUT));
+		type5Shards.add(new JedisShardInfo("nimbus11", 6379, 
+				Constants.INFINITE_TIMEOUT));
+		ShardedJedis type5ShardedJedis = new ShardedJedis(type5Shards, 
+				Hashing.MURMUR_HASH);
+		Set<String> result = jedis.smembers("02192");
+		System.out.println("02192 from jedis: " + result);
+		result = type5ShardedJedis.smembers("02192");
+		System.out.println("02192 from ShardedJedis: " + result);
+		jedis.close();
+		type5ShardedJedis.close();
+	}
+	
+	private static void testReadWriteRedisSpeed() {
+		int max = 100000;
+		PropertyFileHandler propertyFileHandler = 
+				PropertyFileHandler.getInstance();
+		boolean isLocal = false;
+		HostInfo hostInfo;
+		Jedis store;
+		if(isLocal) 
+			hostInfo = propertyFileHandler.getLocalHostInfo();
+		else 
+			hostInfo = new HostInfo("nimbus2", 6379);
+		store = new Jedis(hostInfo.getHost(), hostInfo.getPort());
+		store.flushAll();
+		PipelineManager pipelineManager = new PipelineManager(
+				Collections.singletonList(hostInfo), 
+				propertyFileHandler.getPipelineQueueSize());
+		System.out.println("Using 100000 keys for sorted set with " +
+				"100 values in each key");
+		long readStartTime = System.nanoTime();
+		testReadSpeed(max, pipelineManager, hostInfo);
+		long readEndTime = System.nanoTime();
+		double diff = (readEndTime - readStartTime)/(double)1000000000;
+		System.out.println("Time taken for local write (secs) : " + diff);
+		
+		readStartTime = System.nanoTime();
+		testWriteSpeed(max, pipelineManager, hostInfo);
+		readEndTime = System.nanoTime();
+		diff = (readEndTime - readStartTime)/(double)1000000000;
+		System.out.println("Time taken for local read (secs) : " + diff);
+		
+		store.close();
+	}
+	
+	private static void testReadSpeed(int max, 
+			PipelineManager pipelineManager, HostInfo hostInfo) {
+		for(int i = 1; i <= max; i++) {
+			for(int j = 1; j <= 100; j++)
+				pipelineManager.pzadd(hostInfo, Integer.toString(i), 1.0, 
+						Integer.toString(j), AxiomDB.NON_ROLE_DB);
+		}
+		pipelineManager.synchAll(AxiomDB.NON_ROLE_DB);
+		pipelineManager.resetSynchResponse();
+	}
+	
+	private static void testWriteSpeed(int max, 
+			PipelineManager pipelineManager, HostInfo hostInfo) {
+		for(int i = 1; i <= max; i++) {
+			pipelineManager.pZRangeByScoreWithScores(hostInfo, 
+					Integer.toString(i), Double.NEGATIVE_INFINITY, 
+					Double.POSITIVE_INFINITY, AxiomDB.NON_ROLE_DB);
+		}
+		pipelineManager.synchAndCloseAll(AxiomDB.NON_ROLE_DB);
+		pipelineManager.resetSynchResponse();
 	}
 	
 	private static void testPipelineEval() {

@@ -88,7 +88,8 @@ public class ELClassifierTest {
 	    HostInfo localHostInfo = propertyFileHandler.getLocalHostInfo();
 	    Jedis localStore = new Jedis(localHostInfo.getHost(), localHostInfo.getPort());
 	    Set<String> idHosts = 
-	    		localStore.smembers(AxiomDistributionType.CONCEPT_ID.toString());
+	    		localStore.zrange(AxiomDistributionType.CONCEPT_ID.toString(), 
+	    				Constants.RANGE_BEGIN, Constants.RANGE_END);
 	    // currently there is only one ID node
 	    String[] idHostPort = idHosts.iterator().next().split(":");
 	    Jedis idReader = new Jedis(idHostPort[0], 

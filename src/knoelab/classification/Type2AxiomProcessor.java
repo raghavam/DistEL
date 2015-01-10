@@ -62,9 +62,12 @@ public class Type2AxiomProcessor extends Type2AxiomProcessorBase {
 		channel = localStore.get(propertyFileHandler.getChannelKey());		
 		localHostPReader = new PipelineManager(Collections.singletonList(localHostInfo), 
 						propertyFileHandler.getPipelineQueueSize());
-		type1Hosts = localStore.smembers(AxiomDistributionType.CR_TYPE1_1.toString());
-		type1Hosts.addAll(localStore.smembers(
-					AxiomDistributionType.CR_TYPE1_2.toString()));
+		type1Hosts = localStore.zrange(
+				AxiomDistributionType.CR_TYPE1_1.toString(), 
+				Constants.RANGE_BEGIN, Constants.RANGE_END);
+		type1Hosts.addAll(localStore.zrange(
+					AxiomDistributionType.CR_TYPE1_2.toString(), 
+					Constants.RANGE_BEGIN, Constants.RANGE_END));
 		type1Stores = new ArrayList<Jedis>();
 		for(String host : type1Hosts) {
 			String[] hostPort = host.split(":");

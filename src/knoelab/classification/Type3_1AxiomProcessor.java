@@ -60,10 +60,12 @@ public class Type3_1AxiomProcessor extends Type3_1AxiomProcessorBase {
 		localHostInfo.setPort(localHostPort);		
 		localStore = new Jedis(localHostInfo.getHost(), 
 				localHostInfo.getPort(), Constants.INFINITE_TIMEOUT);
-		type1Hosts = localStore.smembers(
-				AxiomDistributionType.CR_TYPE1_1.toString());
-		type1Hosts.addAll(localStore.smembers(
-				AxiomDistributionType.CR_TYPE1_2.toString()));
+		type1Hosts = localStore.zrange(
+				AxiomDistributionType.CR_TYPE1_1.toString(), 
+				Constants.RANGE_BEGIN, Constants.RANGE_END);
+		type1Hosts.addAll(localStore.zrange(
+				AxiomDistributionType.CR_TYPE1_2.toString(), 
+				Constants.RANGE_BEGIN, Constants.RANGE_END));
 		type1Stores = new ArrayList<Jedis>();
 		for(String s : type1Hosts) {
 			String[] hostPort = s.split(":");

@@ -185,9 +185,10 @@ public class AxiomLoader {
         	assignNodesToRules(normalizedOntology);
         mapConceptToID(normalizedOntology);
         // Results and Concept IDs are only on 1 machine
-        pipelineManager.selectiveSynch(axiomDB, 
-        		typeHostMap.get(AxiomDistributionType.CONCEPT_ID).get(0), 
-        		typeHostMap.get(AxiomDistributionType.RESULT_TYPE).get(0));
+        pipelineManager.synchAll(axiomDB);
+//        pipelineManager.selectiveSynch(axiomDB, 
+//        		typeHostMap.get(AxiomDistributionType.CONCEPT_ID).get(0), 
+//        		typeHostMap.get(AxiomDistributionType.RESULT_TYPE).get(0));
       
 //        StopWatch stopWatch = new StopWatch();
 //        stopWatch.start();
@@ -371,6 +372,7 @@ public class AxiomLoader {
 		List<String> channels = new ArrayList<String>();
 		String axiomTypeKey = propertyFileHandler.getAxiomTypeKey();
 		String channelKey = propertyFileHandler.getChannelKey();
+		double score = 1.0;
 		for(Entry<AxiomDistributionType,List<HostInfo>> entry1 : 
 			typeHostEntrySet) {
 			// insert "TypeChannel" details (CR_TYPE1, "c1")
@@ -383,11 +385,13 @@ public class AxiomLoader {
 				   channels.add("c"+i);
 				for(Entry<AxiomDistributionType,List<HostInfo>> entry2 : 
 					typeHostEntrySet) {
+					score = 1.0;
 					// insert type-host details on all nodes. AxiomType is the key
 					for(HostInfo hostInfo2 : entry2.getValue())
-						pipelineManager.psadd(hostInfo, 
-								entry2.getKey().toString(), 
-								hostInfo2.toString(), axiomDB, false);
+						pipelineManager.pzadd(hostInfo, 
+								entry2.getKey().toString(), score, 
+								hostInfo2.toString(), axiomDB);
+					score++;
 				}
 				i++;
 			} 
@@ -1133,7 +1137,8 @@ public class AxiomLoader {
 	 * @return
 	 */
 	private List<HostInfo> getHostInfoList(AxiomDistributionType axiomType) {
-		Set<String> hosts = idReader.smembers(axiomType.toString());
+		Set<String> hosts = idReader.zrange(axiomType.toString(), 
+				Constants.RANGE_BEGIN, Constants.RANGE_END);
 		List<HostInfo> hostInfoList = new ArrayList<HostInfo>(hosts.size());
 		for(String host : hosts) {
 			String[] hostPort = host.split(":");

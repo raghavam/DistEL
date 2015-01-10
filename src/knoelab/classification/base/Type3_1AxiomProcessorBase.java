@@ -60,8 +60,9 @@ public class Type3_1AxiomProcessorBase implements AxiomProcessor {
 					AxiomDistributionType.CR_TYPE3_1.toString()).
 					append(Constants.SEPARATOR_RATE);
 		scoreDB = new Jedis(machineName, port, Constants.INFINITE_TIMEOUT);
-		Set<String> type32Hosts = scoreDB.smembers(
-				AxiomDistributionType.CR_TYPE3_2.toString());
+		Set<String> type32Hosts = scoreDB.zrange(
+				AxiomDistributionType.CR_TYPE3_2.toString(), 
+				Constants.RANGE_BEGIN, Constants.RANGE_END);
 		scoreDB.select(AxiomDB.SCORE_DB.getDBIndex());	
 		resultNode = propertyFileHandler.getResultNode();
 		resultNodePReader = new PipelineManager(Collections.singletonList(resultNode), 
