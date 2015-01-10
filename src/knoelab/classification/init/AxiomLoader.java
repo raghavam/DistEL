@@ -160,7 +160,8 @@ public class AxiomLoader {
 	        	categorizeAxiomsIntoTypes(normalizedOntology);
 	        	for(AxiomDistributionType type : 
 	        							AxiomDistributionType.values()) {
-	        		Set<String> strHosts = idReader.smembers(type.toString());
+	        		Set<String> strHosts = idReader.zrange(type.toString(), 
+	        				Constants.RANGE_BEGIN, Constants.RANGE_END);
 	        		List<HostInfo> hosts = new ArrayList<HostInfo>(
 	        									strHosts.size());
 	        		for(String s : strHosts) {
