@@ -71,7 +71,15 @@ public class ProgressMessageHandler extends JedisPubSub implements Runnable {
 //		System.out.println("Received message: " + message);
 		String[] iterTypeScoreStr = message.split(Constants.SEPARATOR_RATE);
 		Map<String, Double> typeScoreMap = iterTypeScoreMap.get(iterTypeScoreStr[0]);
-		Double currentProgress = Double.parseDouble(iterTypeScoreStr[2]);		
+		Double currentProgress = Double.parseDouble(iterTypeScoreStr[2]);	
+		
+		try {
+		if(currentProgress.isNaN())
+			throw new Exception("currentProgress is NaN: " + currentProgress);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
 		if(typeScoreMap == null) {
 			typeScoreMap = new HashMap<String, Double>();
 			typeScoreMap.put(iterTypeScoreStr[1], currentProgress);
@@ -104,7 +112,7 @@ public class ProgressMessageHandler extends JedisPubSub implements Runnable {
 		List<Entry<String, Double>> entryList = 
 			new ArrayList<Entry<String, Double>>(
 					iterTypeScoreMap.get(keyToSort).entrySet());
-		Collections.sort(entryList, new ScoreComparator<Double>());
+		Collections.sort(entryList, new ScoreComparator());
 		
 //		for(Entry<String, Double> entry : entryList)
 //			System.out.print(entry.getKey() + ", " + entry.getValue() + "   ");
