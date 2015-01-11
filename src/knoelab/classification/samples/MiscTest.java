@@ -147,6 +147,10 @@ public class MiscTest {
 		map.put("four", 3.13);
 		map.put("five", 3.03);
 		map.put("six", 0.13);
+		map.put("seven", 4.13);
+		map.put("eight", -1.43);
+		map.put("nine", 5.53);
+		map.put("ten", -0.83);
 		List<Entry<String, Double>> entryList = 
 				new ArrayList<Entry<String, Double>>(map.entrySet());
 		Collections.sort(entryList, new ScoreComparator<Double>());
