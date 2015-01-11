@@ -104,7 +104,7 @@ public class ProgressMessageHandler extends JedisPubSub implements Runnable {
 		List<Entry<String, Double>> entryList = 
 			new ArrayList<Entry<String, Double>>(
 					iterTypeScoreMap.get(keyToSort).entrySet());
-		Collections.sort(entryList, new ScoreComparator<Double>(true));
+		Collections.sort(entryList, new ScoreComparator<Double>());
 		
 //		for(Entry<String, Double> entry : entryList)
 //			System.out.print(entry.getKey() + ", " + entry.getValue() + "   ");
