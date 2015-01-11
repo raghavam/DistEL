@@ -151,16 +151,17 @@ public class MiscTest {
 		map.put("eight", -1.43);
 		map.put("nine", 5.53);
 		map.put("ten", -0.83);
+		map.put("NaN", (double)0/0);
 		List<Entry<String, Double>> entryList = 
 				new ArrayList<Entry<String, Double>>(map.entrySet());
-		Collections.sort(entryList, new ScoreComparator<Double>());
+		Collections.sort(entryList, new ScoreComparator());
 		for(Entry<String, Double> entry : entryList)
 			System.out.println(entry.getKey() + "   " + entry.getValue());
 		
 		List<Entry<String, Double>> reverseEntryList = 
 				new ArrayList<Entry<String, Double>>(map.entrySet());
 		Collections.sort(reverseEntryList, 
-				Collections.reverseOrder(new ScoreComparator<Double>()));
+				Collections.reverseOrder(new ScoreComparator()));
 		System.out.println("\n");
 		for(Entry<String, Double> entry : reverseEntryList)
 			System.out.println(entry.getKey() + "   " + entry.getValue());

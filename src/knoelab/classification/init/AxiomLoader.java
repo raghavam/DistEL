@@ -417,7 +417,7 @@ public class AxiomLoader {
 			new ArrayList<Entry<AxiomDistributionType, Double>>(
 					typeScoreMap.entrySet());
 		Collections.sort(entrySet, Collections.reverseOrder(
-				new ScoreComparator<Double>()));
+				new ScoreComparator()));
 		
 		for(Entry<AxiomDistributionType, Double> entry : entrySet) {
 //			System.out.println(entry.getKey().toString() + ":  " + entry.getValue());
