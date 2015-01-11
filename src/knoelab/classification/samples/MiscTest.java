@@ -67,6 +67,7 @@ import knoelab.classification.misc.AxiomDB;
 import knoelab.classification.misc.Constants;
 import knoelab.classification.misc.HostInfo;
 import knoelab.classification.misc.PropertyFileHandler;
+import knoelab.classification.misc.ScoreComparator;
 import knoelab.classification.misc.ScriptsCollection;
 import knoelab.classification.misc.Util;
 import knoelab.classification.pipeline.PipelineManager;
@@ -132,9 +133,33 @@ public class MiscTest {
 //		checkObjectPropertyRangeAxioms(args[0]);
 //		testPipelineEval();
 //		testReadWriteRedisSpeed();
+//		testJedisShardingWrite();
+//		testJedisShardingRead();
 		
-		testJedisShardingWrite();
-		testJedisShardingRead();
+		testScoreComparator();
+	}
+	
+	private static void testScoreComparator() {
+		Map<String, Double> map = new HashMap<String, Double>();
+		map.put("one", 1.23);
+		map.put("two", 2.33);
+		map.put("three", 0.23);
+		map.put("four", 3.13);
+		map.put("five", 3.03);
+		map.put("six", 0.13);
+		List<Entry<String, Double>> entryList = 
+				new ArrayList<Entry<String, Double>>(map.entrySet());
+		Collections.sort(entryList, new ScoreComparator<Double>());
+		for(Entry<String, Double> entry : entryList)
+			System.out.println(entry.getKey() + "   " + entry.getValue());
+		
+		List<Entry<String, Double>> reverseEntryList = 
+				new ArrayList<Entry<String, Double>>(map.entrySet());
+		Collections.sort(reverseEntryList, 
+				Collections.reverseOrder(new ScoreComparator<Double>()));
+		System.out.println("\n");
+		for(Entry<String, Double> entry : reverseEntryList)
+			System.out.println(entry.getKey() + "   " + entry.getValue());
 	}
 	
 	private static void testJedisShardingWrite() {
