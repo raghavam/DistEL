@@ -118,12 +118,16 @@ public class AxiomCounter {
 				"end " +
 				"return totalAxioms ";
 		Long numSubClassAxioms = (Long) jedis.eval(script);
-		System.out.println("Total subclass axioms: " + numSubClassAxioms);
+		int nodeCount = propertyFileHandler.getNodeCount();
+		//deduct nodes since they are also of zset type
+		System.out.println("Total subclass axioms: " + 
+				(numSubClassAxioms-nodeCount));
 		
 		// All R(r) would be in T3-2. All other nodes holding R(r) would have
 		// partial values.
-		Set<String> type32Hosts = jedis.smembers(
-				AxiomDistributionType.CR_TYPE3_2.toString());
+		Set<String> type32Hosts = jedis.zrange(
+				AxiomDistributionType.CR_TYPE3_2.toString(), 
+				Constants.RANGE_BEGIN, Constants.RANGE_END);
 		jedis.close();
 		long totalRsetValues = 0;
 		String countRValsScript = 
