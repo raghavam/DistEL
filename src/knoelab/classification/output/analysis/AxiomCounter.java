@@ -92,6 +92,11 @@ public class AxiomCounter {
 		System.out.println("\t Subclass Axioms: " + 
 				subClassAxiomsWithoutDup.size());
 		System.out.println("\t R(r) axioms: " + rsetAxiomsWithoutDup.size());
+		System.out.println("\t Remaining axioms (add them to after " +
+				"classification axiom count): " + 
+				(axiomsWithoutDup.size() - 
+						(subClassAxiomsWithoutDup.size() + 
+								rsetAxiomsWithoutDup.size())));
 		System.out.println("\t Classes: " + classes.size());
 		System.out.println("\nWith duplicates: ");
 		System.out.println("\t Logical Axioms: " + axiomsWithDup);
