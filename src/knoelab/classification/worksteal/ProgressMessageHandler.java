@@ -1,11 +1,13 @@
 package knoelab.classification.worksteal;
 
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 
@@ -108,10 +110,18 @@ public class ProgressMessageHandler extends JedisPubSub implements Runnable {
 	
 	public String getLeastCompletedType(int iterationNum) {
 		String keyToSort = Integer.toString(iterationNum);
-		//sort the map
+		//sort the map. Since the values of map can change during sorting,
+		//deep copying the individual entries before sorting.
 		List<Entry<String, Double>> entryList = 
-			new ArrayList<Entry<String, Double>>(
-					iterTypeScoreMap.get(keyToSort).entrySet());
+				new ArrayList<Entry<String, Double>>();
+		Set<Entry<String, Double>> mapEntries = 
+				iterTypeScoreMap.get(keyToSort).entrySet();
+		for(Entry<String, Double> entry : mapEntries) {
+			Entry<String, Double> entryToAdd = 
+					new AbstractMap.SimpleImmutableEntry<String, Double>(
+							entry.getKey(), entry.getValue());
+			entryList.add(entryToAdd);
+		}
 		Collections.sort(entryList, new ScoreComparator());
 		
 //		for(Entry<String, Double> entry : entryList)
