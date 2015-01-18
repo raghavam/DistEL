@@ -135,8 +135,9 @@ public class MiscTest {
 //		testReadWriteRedisSpeed();
 //		testJedisShardingWrite();
 //		testJedisShardingRead();
+//		testScoreComparator();
 		
-		testScoreComparator();
+		printAxioms(args[0]);
 	}
 	
 	private static void testScoreComparator() {
@@ -821,31 +822,10 @@ public class MiscTest {
         File owlFile = new File(ontPath);
         IRI documentIRI = IRI.create(owlFile);
         OWLOntology ontology = manager.loadOntologyFromOntologyDocument(documentIRI);
-        
-        String testClassYStr = "<http://www.co-ode.org/ontologies/galen#Arthroscope>";
-		String testRoleStr = "<http://www.co-ode.org/ontologies/galen#hasPhysicalMeans>";
-		String testClassXStr = "<http://knoelab.wright.edu/ontologies#Class1110>";
 		
 		Set<OWLClass> cls = ontology.getClassesInSignature();
-		OWLClass testClassY = null;
 		for(OWLClass cl : cls)
-			if(cl.toString().equals(testClassYStr)) {
-				testClassY = cl;
-				System.out.println("Found " + testClassYStr);
-			}
-		Set<OWLObjectProperty> dps = ontology.getObjectPropertiesInSignature();
-		OWLObjectProperty testRole = null;
-		for(OWLObjectProperty dp : dps)
-			if(dp.toString().equals(testRoleStr)) {
-				testRole = dp;
-				System.out.println("Found " + testRoleStr);
-			}
- 		
-		Set<OWLAxiom> propAxioms = ontology.getReferencingAxioms(testRole);
-        
-        for(OWLAxiom axiom : propAxioms){
-        	System.out.println(axiom.toString());
-        }
+			System.out.println(cl.toString());
 	}
 	
 	private static void testLua() {
