@@ -182,11 +182,11 @@ public class AxiomCounter {
 					"end " +
 				"end " +
 				"return totalAxioms ";
-//		Long numSubClassAxioms = (Long) jedis.eval(script);
+		Long numSubClassAxioms = (Long) jedis.eval(script);
 		int nodeCount = propertyFileHandler.getNodeCount();
 		//deduct nodes since they are also of zset type
-//		System.out.println("Total subclass axioms: " + 
-//				(numSubClassAxioms-nodeCount));
+		System.out.println("Total subclass axioms: " + 
+				(numSubClassAxioms-nodeCount));
 		
 		// All R(r) would be in T3-2. All other nodes holding R(r) would have
 		// partial values.
@@ -224,7 +224,7 @@ public class AxiomCounter {
 		AxiomCounter axiomCounter = new AxiomCounter();
 		System.out.println("\n------------Before classification ------------");
 //		axiomCounter.getAxiomCountBeforeClassification(args[0]);
-//		axiomCounter.getAxiomCountBeforeClassificationWithoutDupCheck(args[0]);
+		axiomCounter.getAxiomCountBeforeClassificationWithoutDupCheck(args[0]);
 		System.out.println("\n------------After classification ------------");
 		axiomCounter.getAxiomCountAfterClassification();
 	}
