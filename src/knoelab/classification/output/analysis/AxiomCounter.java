@@ -170,7 +170,7 @@ public class AxiomCounter {
 				PropertyFileHandler.getInstance();
 		HostInfo resultHostInfo = propertyFileHandler.getResultNode();
 		Jedis jedis = new Jedis(resultHostInfo.getHost(), 
-				resultHostInfo.getPort(), Constants.INFINITE_TIMEOUT);
+				resultHostInfo.getPort(), 60*60*60*1000);
 		String script = 
 				"local keys = redis.call('KEYS', '*') " +
 				"local totalAxioms = 0 " +
