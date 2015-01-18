@@ -101,7 +101,6 @@ public class MiscTest {
 		
 //		checkTransactions();
 //		initAxiomTypes();
-//		convertToFunctionalSyntax(args[0]);
 //		testMultiZRangeByScore();
 //		printOntologyStats(args[0]);
 //		testLuaTable();
@@ -136,8 +135,9 @@ public class MiscTest {
 //		testJedisShardingWrite();
 //		testJedisShardingRead();
 //		testScoreComparator();
+//		printAxioms(args[0]);
 		
-		printAxioms(args[0]);
+		convertToFunctionalSyntax(args[0]);
 	}
 	
 	private static void testScoreComparator() {
@@ -600,8 +600,9 @@ public class MiscTest {
         IRI documentIRI = IRI.create(owlFile);
         OWLOntology ontology = manager.loadOntologyFromOntologyDocument(documentIRI);
         
+        String fileName = owlFile.getName().split("\\.")[0] + "func-syntax.owl";
         manager.saveOntology(ontology, new OWLFunctionalSyntaxOntologyFormat(), 
-        		IRI.create(new File("func-syntax.owl")));
+        		IRI.create(new File(fileName)));
         System.out.println("Done converting into another format");
 	}
 	
