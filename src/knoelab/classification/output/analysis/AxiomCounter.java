@@ -129,6 +129,7 @@ public class AxiomCounter {
 		int numfiles = 0;
 		for(File ontFile : ontFiles) {
 			IRI documentIRI = IRI.create(ontFile);
+			System.out.println("Before loading...");
 	        OWLOntology ontology = manager.loadOntology(documentIRI);
 	        System.out.println("Ontology loaded...");
 	        numClassesWithDup += ontology.getClassesInSignature().size();
