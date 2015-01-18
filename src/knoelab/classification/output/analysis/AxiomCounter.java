@@ -105,6 +105,64 @@ public class AxiomCounter {
 		System.out.println("\t Classes: " + numClassesWithDup);
 	}
 	
+	
+	/**
+	 * Get number of logical axioms, A < B, A < 3r.B with and 
+	 * without duplicates
+	 */
+	public void getAxiomCountBeforeClassificationWithoutDupCheck(String ontPath) 
+			throws Exception {
+		File ontPathFile = new File(ontPath);
+		File[] ontFiles;
+		if(ontPathFile.isDirectory()) 
+			ontFiles = ontPathFile.listFiles();
+		else if(ontPathFile.isFile()) 
+			ontFiles = new File[]{ontPathFile};
+		else
+			throw new Exception("Unexpected type, path should be " +
+					"either a file or directory");
+		OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
+		int axiomsWithDup = 0;
+		int subClassAxiomsWithDup = 0;
+		int rsetAxiomsWithDup = 0;
+		int numClassesWithDup = 0;
+		int numfiles = 0;
+		for(File ontFile : ontFiles) {
+			IRI documentIRI = IRI.create(ontFile);
+	        OWLOntology ontology = manager.loadOntology(documentIRI);
+	        numClassesWithDup += ontology.getClassesInSignature().size();
+	        Set<OWLLogicalAxiom> axioms = ontology.getLogicalAxioms();
+	        axiomsWithDup += axioms.size();
+	        for(OWLLogicalAxiom ax : axioms) {
+	        	if(ax instanceof OWLSubClassOfAxiom) {
+	        		OWLSubClassOfAxiom subAxiom = (OWLSubClassOfAxiom)ax;
+	        		OWLClassExpression subOCE = subAxiom.getSubClass();
+	        		OWLClassExpression superOCE = subAxiom.getSuperClass();
+	        		if(subOCE instanceof OWLClass) {
+	        			if(superOCE instanceof OWLClass) {
+	        				subClassAxiomsWithDup++;
+	        			}
+	        			else if(superOCE instanceof OWLObjectSomeValuesFrom) {
+	        				rsetAxiomsWithDup++;
+	        			}
+	        		}
+	        	}
+	        }
+	        manager.removeOntology(ontology);
+	        numfiles++;
+		}
+		System.out.println("Num files: " + numfiles);
+		System.out.println("\t Logical Axioms: " + axiomsWithDup);
+		System.out.println("\t Subclass Axioms: " + subClassAxiomsWithDup);
+		System.out.println("\t R(r) axioms: " + rsetAxiomsWithDup);
+		System.out.println("\t Remaining axioms (add them to after " +
+				"classification axiom count): " + 
+				(axiomsWithDup - 
+						(subClassAxiomsWithDup + rsetAxiomsWithDup)));
+		System.out.println("\t Classes: " + numClassesWithDup);
+	}
+	
+	
 	public void getAxiomCountAfterClassification() {
 		PropertyFileHandler propertyFileHandler = 
 				PropertyFileHandler.getInstance();
@@ -163,7 +221,8 @@ public class AxiomCounter {
 		}
 		AxiomCounter axiomCounter = new AxiomCounter();
 		System.out.println("\n------------Before classification ------------");
-		axiomCounter.getAxiomCountBeforeClassification(args[0]);
+//		axiomCounter.getAxiomCountBeforeClassification(args[0]);
+		axiomCounter.getAxiomCountBeforeClassificationWithoutDupCheck(args[0]);
 		System.out.println("\n------------After classification ------------");
 		axiomCounter.getAxiomCountAfterClassification();
 	}
