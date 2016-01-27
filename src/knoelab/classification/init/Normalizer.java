@@ -528,6 +528,8 @@ public class Normalizer {
         	OWLObjectIntersectionOf intersectionAxiom = 
         		(OWLObjectIntersectionOf)sub;
         	Set<OWLClassExpression> operands = intersectionAxiom.getOperands();
+        	if(operands.size() > 2)
+        		return true;
         	for(OWLClassExpression op : operands) {
         		if(isBasic(op))
         			continue;
@@ -653,10 +655,32 @@ public class Normalizer {
     	
     	OWLClassExpression superClass = ax.getSuperClass();
     	OWLObjectIntersectionOf intersectionAxiom = (OWLObjectIntersectionOf) ax.getSubClass();
-    	Set<OWLClassExpression> operands = new HashSet<OWLClassExpression>(intersectionAxiom.getOperands());
+    	List<OWLClassExpression> operands = new ArrayList<OWLClassExpression>(
+    			intersectionAxiom.getOperands());
     	Iterator<OWLClassExpression> operandsIt = operands.iterator();
     	Set<OWLClassExpression> normalizedOperands = new HashSet<OWLClassExpression>();
     	Set<OWLAxiom> normalizedAxioms = new HashSet<OWLAxiom>();
+    	Set<OWLClassExpression> newOperands;
+    	
+    	if(operands.size() > 2) {
+    		newOperands = new HashSet<OWLClassExpression>(operands.size()-1);
+    		for (int i = 1; i < operands.size(); i++) {
+    			newOperands.add(operands.get(i));
+            }
+    		OWLClassExpression newConjunct = 
+    				datafactory.getOWLObjectIntersectionOf(newOperands);
+    		OWLClassExpression newClassExp = checkAndCreateConcept(newConjunct);
+    		Set<OWLAxiom> resultAxioms = new HashSet<OWLAxiom>();
+    		resultAxioms.add(datafactory.getOWLSubClassOfAxiom(
+    				newConjunct, newClassExp));
+    		resultAxioms.add(datafactory.getOWLSubClassOfAxiom(
+    				datafactory.getOWLObjectIntersectionOf(operands.get(0), 
+    						newClassExp), superClass));
+    		normalizedAxioms.addAll(resultAxioms);
+    		operands.removeAll(newOperands);
+    		operands.add(newClassExp);
+    		operandsIt = operands.iterator();
+    	}
     	
     	while(operandsIt.hasNext()) {
     		OWLClassExpression op = operandsIt.next();
@@ -671,9 +695,12 @@ public class Normalizer {
     	if(!normalizedOperands.isEmpty()) {
     		operands.addAll(normalizedOperands);
     		normalizedAxioms.add(datafactory.getOWLSubClassOfAxiom(
-    				datafactory.getOWLObjectIntersectionOf(operands), superClass));
+    				datafactory.getOWLObjectIntersectionOf(
+    						new HashSet<OWLClassExpression>(operands)), superClass));
     		return normalizedAxioms;
     	}
+    	else if(!normalizedAxioms.isEmpty())
+    		return normalizedAxioms;
     	else 
     		return null;
     }
@@ -894,11 +921,12 @@ public class Normalizer {
     	for(File owlFile : allFiles) {
     		totalAxioms += normalizeData(manager, owlFile, 
     				functionalFormat, typesRemoved, args[1]);
+    		System.out.println("No of axioms after normalization: " + totalAxioms);
     		count++;
     		System.out.println("Done with " + count);
     	}
     	
-    	System.out.println("Total axiom count: " + totalAxioms);
+//    	System.out.println("Total axiom count: " + totalAxioms);
     	System.out.println("Removed axiom types: ");
     	for(String s : typesRemoved)
     		System.out.println(s);
@@ -928,6 +956,8 @@ public class Normalizer {
     		Set<String> typesRemoved, String outputPath) throws Exception {
     	IRI documentIRI = IRI.create(owlFile);
         OWLOntology ontology = manager.loadOntology(documentIRI);
+        System.out.println("No of axioms before normalization: " + 
+        		ontology.getLogicalAxiomCount());
     	Normalizer normalizer = new Normalizer(manager, ontology);
     	OWLOntology normalizedOntology = normalizer.Normalize();
 	    File file = new File(outputPath + File.separator + 
