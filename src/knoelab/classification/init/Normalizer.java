@@ -196,6 +196,7 @@ public class Normalizer {
                 }
             }
         }
+        
         //Phase 2: apply NF5-NF7 exhaustively, generating final axioms.
         while (!tempStack.isEmpty()) {
             OWLAxiom ax = tempStack.pop();
@@ -439,16 +440,16 @@ public class Normalizer {
         }
         OWLSubClassOfAxiom subClassAxiom = (OWLSubClassOfAxiom) ax;
         OWLClassExpression oce = subClassAxiom.getSuperClass();
+        if (NF5Check((OWLSubClassOfAxiom) ax)) {
+            return NF5((OWLSubClassOfAxiom) ax);
+        }
         //check for ObjectPropertyRange elimination
-        if(oce instanceof OWLObjectSomeValuesFrom) {
+        else if (oce instanceof OWLObjectSomeValuesFrom) {
         	boolean isNormalForm6 = NF6Check(subClassAxiom);
         	if(!isNormalForm6) 
         		return eliminateObjPropertyRange(subClassAxiom);
         	else 
         		return NF6(subClassAxiom);
-        }
-        else if (NF5Check((OWLSubClassOfAxiom) ax)) {
-            return NF5((OWLSubClassOfAxiom) ax);
         } else if (NF7Check((OWLSubClassOfAxiom) ax)) {
             return NF7((OWLSubClassOfAxiom) ax);
         }
@@ -578,10 +579,8 @@ public class Normalizer {
     private boolean NF5Check(OWLSubClassOfAxiom ax) {
         OWLClassExpression sub = ax.getSubClass();
         OWLClassExpression sup = ax.getSuperClass();
-        if (!isBasic(sub) && !isBasic(sup)) {
+        if (!isBasic(sub) && !isBasic(sup))
             return true;
-        }
-
         return false;
     }
 
@@ -973,6 +972,7 @@ public class Normalizer {
     
     private class NormalizeStatus {
     	private Set<? extends OWLAxiom> partiallyNormalizedAxioms;
+    	// axioms not in EL are skipped
     	private boolean skipAxiom;
     	
     	NormalizeStatus(Set<? extends OWLAxiom> axioms, 
