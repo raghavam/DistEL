@@ -17,15 +17,8 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.UUID;
 
-import knoelab.classification.misc.Constants;
-import knoelab.classification.misc.HostInfo;
-import knoelab.classification.misc.LRUCache;
-import knoelab.classification.misc.PropertyFileHandler;
-import knoelab.classification.misc.Util;
-
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.io.OWLFunctionalSyntaxOntologyFormat;
-import org.semanticweb.owlapi.io.OWLXMLOntologyFormat;
 import org.semanticweb.owlapi.model.AxiomType;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAxiom;
@@ -33,9 +26,6 @@ import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLClassAssertionAxiom;
 import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLDataFactory;
-import org.semanticweb.owlapi.model.OWLDataPropertyAssertionAxiom;
-import org.semanticweb.owlapi.model.OWLDataPropertyDomainAxiom;
-import org.semanticweb.owlapi.model.OWLDataPropertyRangeAxiom;
 import org.semanticweb.owlapi.model.OWLDisjointClassesAxiom;
 import org.semanticweb.owlapi.model.OWLEquivalentClassesAxiom;
 import org.semanticweb.owlapi.model.OWLEquivalentObjectPropertiesAxiom;
@@ -50,7 +40,6 @@ import org.semanticweb.owlapi.model.OWLObjectPropertyDomainAxiom;
 import org.semanticweb.owlapi.model.OWLObjectPropertyExpression;
 import org.semanticweb.owlapi.model.OWLObjectPropertyRangeAxiom;
 import org.semanticweb.owlapi.model.OWLObjectSomeValuesFrom;
-import org.semanticweb.owlapi.model.OWLObjectUnionOf;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
@@ -59,6 +48,11 @@ import org.semanticweb.owlapi.model.OWLSubObjectPropertyOfAxiom;
 import org.semanticweb.owlapi.model.OWLSubPropertyChainOfAxiom;
 import org.semanticweb.owlapi.model.OWLTransitiveObjectPropertyAxiom;
 
+import knoelab.classification.misc.Constants;
+import knoelab.classification.misc.HostInfo;
+import knoelab.classification.misc.LRUCache;
+import knoelab.classification.misc.PropertyFileHandler;
+import knoelab.classification.misc.Util;
 import redis.clients.jedis.Jedis;
 
 /**
@@ -66,7 +60,7 @@ import redis.clients.jedis.Jedis;
  * For the rules, see the 2005 "Pushing the EL envelope" technical report.
  * Input/Output is a stack of axioms.
  * 
- * @author Frederick Maier, Raghava
+ * @author Frederick Maier, Raghava Mutharaju
  */
 public class Normalizer {
 
