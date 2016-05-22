@@ -1,6 +1,9 @@
 package knoelab.classification.test;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.GregorianCalendar;
 import java.util.HashSet;
@@ -171,11 +174,15 @@ public class ELClassifierTest {
 		System.out.println("\t 4 Pellet \n\t 5 HermiT \n\t 6 JFact");
 		System.out.println("Enter your choice: ");
 		int option = scanner.nextInt();
+		scanner.close();
 		
 		File ontFile = new File(ontPath);
 		IRI documentIRI = IRI.create(ontFile);
 		OWLOntologyManager manager = OWLManager.createOWLOntologyManager();	
 		OWLOntology ontology = manager.loadOntologyFromOntologyDocument(documentIRI);
+		
+		OWLClass owlThing = ontology.getOWLOntologyManager().
+				getOWLDataFactory().getOWLThing();
 		System.out.println("Assuming the input ontology is already normalized");
 		GregorianCalendar start = new GregorianCalendar();
 		
@@ -213,13 +220,23 @@ public class ELClassifierTest {
 					
 			case 4:
 					System.out.println("Using Pellet...");
+					PrintWriter writer = new PrintWriter(new BufferedWriter(
+				        new FileWriter("final-saxioms-pellet.txt")));
 					PelletReasoner pelletReasoner = 
 					    	PelletReasonerFactory.getInstance().createReasoner(
 					    			ontology);
 					pelletReasoner.prepareReasoner();	
 					pelletReasoner.precomputeInferences(
 							InferenceType.CLASS_HIERARCHY);
+					Set<OWLClass> concepts = ontology.getClassesInSignature();
+					for(OWLClass concept : concepts) {
+						Set<String> superClasses = getSuperClasses(
+								pelletReasoner, concept, owlThing);
+						for(String superClass : superClasses)
+							writer.println(concept.toString() + "|" + superClass);
+					}
 					pelletReasoner.dispose();
+					writer.close();
 					break;
 					
 			case 5:
@@ -646,9 +663,9 @@ public class ELClassifierTest {
 //			System.out.println("Give the path of owl file");
 //    		System.exit(-1);
 //		}
-		new ELClassifierTest().precomputeAndCheckResults(args);
+//		new ELClassifierTest().precomputeAndCheckResults(args);
 //		new ELClassifierTest().mergeAndCompare(args[0]);
-//		new ELClassifierTest().getReasonerRunTime();
+		new ELClassifierTest().getReasonerRunTime();
 //		new ELClassifierTest().getELKIncrementalRuntime(args[0], args[1]);
 //		new ELClassifierTest().getPelletIncrementalClassifierRunTime(
 //				args[0], args[1]);
