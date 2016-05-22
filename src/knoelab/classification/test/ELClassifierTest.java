@@ -189,12 +189,23 @@ public class ELClassifierTest {
 		switch(option) {
 			case 1:	
 					System.out.println("Using ELK...");
+					PrintWriter elkWriter = new PrintWriter(new BufferedWriter(
+					        new FileWriter("final-saxioms-elk.txt")));
 					OWLReasonerFactory reasonerFactory = 
 							new ElkReasonerFactory();
 					OWLReasoner reasoner = reasonerFactory.createReasoner(
 							ontology);
 					reasoner.precomputeInferences(
 							InferenceType.CLASS_HIERARCHY);
+					Set<OWLClass> ontConcepts = ontology.getClassesInSignature();
+					for(OWLClass concept : ontConcepts) {
+						Set<String> superClasses = getSuperClasses(
+								reasoner, concept, owlThing);
+						for(String superClass : superClasses)
+							elkWriter.println(concept.toString() + "|" + superClass);
+					}
+					reasoner.dispose();
+					elkWriter.close();
 					reasoner.dispose();
 					break;
 					
