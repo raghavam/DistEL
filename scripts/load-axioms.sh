@@ -1,3 +1,3 @@
 #!/bin/bash
 
-java -Xms6g -Xmx6g -cp dist/DistEL.jar:lib/jedis-2.6.2.jar knoelab.classification.init.AxiomLoader $1 $2 $3 $4
+java -Xms12g -Xmx12g -cp dist/DistEL.jar:lib/jedis-2.8.1.jar knoelab.classification.init.AxiomLoader $1 $2 $3 $4
