@@ -142,8 +142,10 @@ public class AxiomLoader {
         }
         System.out.println("Logical axioms: " + 
         				normalizedOntology.getLogicalAxiomCount());
-    		System.out.println("Individuals: " + 
-    			ontology.getIndividualsInSignature().size());
+        System.out.println("Concepts: " + 
+        				normalizedOntology.getClassesInSignature().size());
+    	System.out.println("Individuals: " + 
+    			normalizedOntology.getIndividualsInSignature().size());
         if(isIncrementalData) {
         	/* need not assign nodes to rules again -- just do it once before
         	 * the increments start. New axioms should go to the same node as
