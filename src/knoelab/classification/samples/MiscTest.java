@@ -136,8 +136,19 @@ public class MiscTest {
 //		testJedisShardingRead();
 //		testScoreComparator();
 //		printAxioms(args[0]);
+//		convertToFunctionalSyntax(args[0]);
 		
-		convertToFunctionalSyntax(args[0]);
+		pingRedis();
+	}
+	
+	private static void pingRedis() {
+		PropertyFileHandler propertyFileHandler = 
+				PropertyFileHandler.getInstance();
+		HostInfo idReaderInfo = propertyFileHandler.getConceptIDNode();
+		Jedis idReader = new Jedis(idReaderInfo.getHost(), idReaderInfo.getPort(), 
+				Constants.INFINITE_TIMEOUT);
+		System.out.println(idReader.ping());
+		idReader.close();
 	}
 	
 	private static void testScoreComparator() {
