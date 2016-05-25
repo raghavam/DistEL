@@ -1184,13 +1184,14 @@ public class AxiomLoader {
 			pipelineManager.pset(idNodeInfo, topConceptID, topConcept, axiomDB);
 			pipelineManager.pzadd(resultNodeInfo, topConceptID, 
 					Constants.INIT_SCORE, topConceptID, axiomDB);
-			
+/*			
 			pipelineManager.pset(idNodeInfo, bottomConcept, 
 					bottomConceptID, axiomDB);
 			pipelineManager.pset(idNodeInfo, bottomConceptID, 
 					bottomConcept, axiomDB);
 			pipelineManager.pzadd(resultNodeInfo, bottomConceptID, 
 					Constants.INIT_SCORE, bottomConceptID, axiomDB);
+*/					
 		}
 		
 		PipelineManager pipelineIDReader = new PipelineManager(
@@ -1238,8 +1239,8 @@ public class AxiomLoader {
 			// and S(bottom) = {all classes}
 			pipelineManager.pzadd(resultNodeInfo, conceptID, 
 					Constants.INIT_SCORE, conceptID, axiomDB);
-			pipelineManager.pzadd(resultNodeInfo, conceptID, 
-					Constants.INIT_SCORE, bottomConceptID, axiomDB);
+//			pipelineManager.pzadd(resultNodeInfo, conceptID, 
+//					Constants.INIT_SCORE, bottomConceptID, axiomDB);
 			pipelineManager.pzadd(resultNodeInfo, topConceptID, 
 					Constants.INIT_SCORE, conceptID, axiomDB);
 		}
