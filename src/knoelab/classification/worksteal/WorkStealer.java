@@ -208,6 +208,8 @@ public class WorkStealer {
 					Util.getElapsedTimeSecs(readChunkStartTime));
 		
 		System.out.println("Result size: " + result.size());
+		if(result.size() >= 2)
+			System.out.println("Result(1): " + result.get(1));
 		for(int i=0; i<result.size(); i++) {
 			System.out.println("Result: " + result.get(i));
 			i++;
