@@ -30,6 +30,7 @@ public interface Constants {
 	public final long BOTTOM_ID = 0;
 	public final long TOP_ID = 1;
 	public final long LITERAL_ID = -1;
+	public final String RESULT_KEYS = "resultKeys";
 	
 	public final String DOMAIN_FIELD = "domain";
 	public final String RANGE_FIELD = "range";
