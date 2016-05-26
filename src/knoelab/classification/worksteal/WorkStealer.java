@@ -208,12 +208,13 @@ public class WorkStealer {
 					Util.getElapsedTimeSecs(readChunkStartTime));
 		
 		int chunkCount = Integer.parseInt(result.remove(0));
+		String totalChunksStr = result.remove(0);
 		if(chunkCount == -1) {
 			//all chunks are processed
 			progress = 1.0;
 		}
 		else {
-			double totalChunks = Double.parseDouble(result.remove(0));
+			double totalChunks = Double.parseDouble(totalChunksStr);
 			progress = chunkCount/totalChunks;
 		}
 		return result;
