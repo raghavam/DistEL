@@ -207,6 +207,13 @@ public class WorkStealer {
 					"decrAndGetChunk script: " + 
 					Util.getElapsedTimeSecs(readChunkStartTime));
 		
+		System.out.println("Result size: " + result.size());
+		for(int i=0; i<result.size(); i++) {
+			System.out.println("Result: " + result.get(i));
+			i++;
+			if(i == 5)
+				break;
+		}
 		int chunkCount = Integer.parseInt(result.remove(0));
 		double totalChunks = Double.parseDouble(result.remove(0));
 		if(chunkCount == -1) {
