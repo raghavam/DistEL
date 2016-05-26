@@ -207,23 +207,15 @@ public class WorkStealer {
 					"decrAndGetChunk script: " + 
 					Util.getElapsedTimeSecs(readChunkStartTime));
 		
-		System.out.println("Result size: " + result.size());
-		if(result.size() >= 2)
-			System.out.println("Result(1): " + result.get(1));
-		for(int i=0; i<result.size(); i++) {
-			System.out.println("Result: " + result.get(i));
-			i++;
-			if(i == 5)
-				break;
-		}
 		int chunkCount = Integer.parseInt(result.remove(0));
-		double totalChunks = Double.parseDouble(result.remove(0));
 		if(chunkCount == -1) {
 			//all chunks are processed
 			progress = 1.0;
 		}
-		else 
+		else {
+			double totalChunks = Double.parseDouble(result.remove(0));
 			progress = chunkCount/totalChunks;
+		}
 		return result;
 	}
 }
