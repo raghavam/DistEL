@@ -441,6 +441,29 @@ public class ELClassifierTest {
 		resultStore.select(0);
 	}
 	
+	private void writeResultsToFile() throws Exception {
+		PropertyFileHandler propertyFileHandler = PropertyFileHandler.getInstance();
+	    HostInfo resultNodeHostInfo = propertyFileHandler.getResultNode();
+	    // port: 6489 for snapshot testing
+	    Jedis resultStore = new Jedis(resultNodeHostInfo.getHost(), 
+	    		resultNodeHostInfo.getPort(), Constants.INFINITE_TIMEOUT);
+		new ResultRearranger().initializeAndRearrange();
+		//rearranged results are in DB-1
+		resultStore.select(1);
+		Set<String> resultKeys = resultStore.smembers(Constants.RESULT_KEYS);
+		PrintWriter writer = new PrintWriter(new BufferedWriter(
+		        new FileWriter("final-saxioms-distel.txt")));
+		System.out.println("Writing results to final-saxioms-distel.txt");
+		
+		for(String key : resultKeys) {
+			Set<String> superClasses = resultStore.smembers(key);
+			for(String sc : superClasses) 
+				writer.println(key + "|" + sc);
+		}
+		writer.close();
+		resultStore.close();
+	}
+	
 	private void compareAndPrintEqualSizedClasses(OWLClass cl,
 			Set<OWLClass> reasonerSuperClasses, Set<String> superClasses, 
 			Jedis idReader) throws Exception {
@@ -676,7 +699,8 @@ public class ELClassifierTest {
 //		}
 //		new ELClassifierTest().precomputeAndCheckResults(args);
 //		new ELClassifierTest().mergeAndCompare(args[0]);
-		new ELClassifierTest().getReasonerRunTime();
+//		new ELClassifierTest().getReasonerRunTime();
+		new ELClassifierTest().writeResultsToFile();
 //		new ELClassifierTest().getELKIncrementalRuntime(args[0], args[1]);
 //		new ELClassifierTest().getPelletIncrementalClassifierRunTime(
 //				args[0], args[1]);
