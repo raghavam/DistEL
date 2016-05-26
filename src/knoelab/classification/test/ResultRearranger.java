@@ -75,8 +75,10 @@ public class ResultRearranger {
 		for(String key : allKeys) {
 			try{
 				Set<String> values = resultStore0.zrange(key, 0, -1);
-				for(String xchangeKey : values)
+				for(String xchangeKey : values) {
 					p.sadd(xchangeKey, key);
+					p.sadd(Constants.RESULT_KEYS, xchangeKey);
+				}
 			}
 			catch(JedisException e) {
 				System.out.println("Invalid key: " + key);
