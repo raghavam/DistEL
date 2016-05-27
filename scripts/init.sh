@@ -45,7 +45,7 @@ ssh "$2@$i" "if [ ! -d ~/DistEL ]; then mkdir -p ~/DistEL; fi
 if [ ! -d ~/DistEL/dist ]; then mkdir -p ~/DistEL/dist; fi
 if [ ! -d ~/DistEL/lib ]; then mkdir -p ~/DistEL/lib; fi
 "
-scp lib/jedis-2.8.1.jar "$2@$i":~/DistEL/lib/
+scp lib/jedis-2.6.2.jar "$2@$i":~/DistEL/lib/
 scp dist/* "$2@$i":~/DistEL/dist/
 scp ShardInfo.properties "$2@$i":~/DistEL/
 done
