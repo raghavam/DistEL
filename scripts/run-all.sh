@@ -22,10 +22,10 @@ scripts/init.sh nodes.txt azureuser ShardInfo.properties
 scripts/load-axioms.sh $1 true false false
 
 # classify the ontology
-time scripts/classify-all.sh > @2/log$c.txt
+time scripts/classify-all.sh > $2/log$c.txt
 
 # move output and error directories to log directory
-cp -ar output/ /home/azureuser/logs/expt_stats/@2/output$c
-cp -ar error/ /home/azureuser/logs/expt_stats/@2/error$c
+cp -ar output/ $2/output$c
+cp -ar error/ $2/error$c
 
 done
