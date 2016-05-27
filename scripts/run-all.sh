@@ -1,28 +1,23 @@
 #!/bin/bash
 
-if [ $# -ne 1 ]; then
-	echo -e "\nrequires Ontology file name"
+if [ $# -ne 2 ]; then
+	echo -e "\n\t requires ontology file path and \n\t log path"
 	exit 1
 fi
 
-echo -e "deleting output & error dirs"
-# removing pssh output & error dirs
-rm -rf output/
-rm -rf error/
+# deleting DB contents twice just in case
+scripts/delete-all.sh
+scripts/delete-all.sh
 
-#echo "Building jar..."
-#ant jar
-echo -e "\ncopying jar to all the nodes...\n"
-nodes=( nimbus2 nimbus3 nimbus4 nimbus5 )
+# copy DistEL jar, lib, properties file to all nodes
+scripts/init.sh nodes.txt azureuser ShardInfo.properties
 
-for i in "${nodes[@]}"
-do
-	rsync -ae ssh dist/DistEL.jar w030vxm@$i:~/DistributedReasoning/DistributedELCompletionRules/dist/	
-done
+# load axioms
+scripts/load-axioms.sh /home/azureuser/ontologies/$1 true false false
 
-#echo -e "\nDeleting keys from shards...."
-#java -cp dist/DistEL.jar:lib/jedis-2.0.0-build.jar knoelab.classification.misc.DeleteKeys distributed
-#echo -e "\nLoading axioms...."
-#java -cp dist/DistEL.jar:lib/jedis-2.0.0-build.jar:lib/owlapi-bin.jar knoelab.classification.init.AxiomLoader ../TestOntologies/$1 false
-echo -e "\nClassifier starts....\n"
-pssh -h hosts.txt -t 0 -o output -e error -I < classifier.sh
+# classify the ontology
+time scripts/classify-all.sh > /home/azureuser/logs/expt_stats/@2/log.txt
+
+# move output and error directories to log directory
+cp -ar output/ /home/azureuser/logs/expt_stats/@2/
+cp -ar error/ /home/azureuser/logs/expt_stats/@2/
