@@ -8,7 +8,7 @@ if [ $# -ne 3 ]; then
 	exit 1
 fi
 
-for (( c=1; c<=$numIterations; c++ ))
+for (( c=1; c<=$3; c++ ))
 do
 
 # deleting DB contents twice just in case
