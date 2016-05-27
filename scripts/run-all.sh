@@ -2,8 +2,8 @@
 
 if [ $# -ne 3 ]; then
 	echo -e "requires \n\t 
-				1) ontology file path following /home/azureuser/ontologies/, \n\t 
-				2) log path following /home/azureuser/logs/expt_stats/ and \n\t 
+				1) ontology file path, \t 
+				2) log path following and \t 
 				3) #times to run"
 	exit 1
 fi
@@ -19,10 +19,10 @@ scripts/delete-all.sh
 scripts/init.sh nodes.txt azureuser ShardInfo.properties
 
 # load axioms
-scripts/load-axioms.sh /home/azureuser/ontologies/$1 true false false
+scripts/load-axioms.sh $1 true false false
 
 # classify the ontology
-time scripts/classify-all.sh > /home/azureuser/logs/expt_stats/@2/log$c.txt
+time scripts/classify-all.sh > @2/log$c.txt
 
 # move output and error directories to log directory
 cp -ar output/ /home/azureuser/logs/expt_stats/@2/output$c
