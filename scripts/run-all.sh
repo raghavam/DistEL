@@ -14,7 +14,7 @@ scripts/init.sh nodes.txt azureuser ShardInfo.properties
 for (( c=1; c<=$3; c++ ))
 do
 
-echo "\nrun $c \n"
+echo -e "\nrun $c \n"
 
 # deleting DB contents twice just in case
 scripts/delete-all.sh
