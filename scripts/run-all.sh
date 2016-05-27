@@ -19,10 +19,12 @@ scripts/delete-all.sh
 scripts/init.sh nodes.txt azureuser ShardInfo.properties
 
 # load axioms
-scripts/load-axioms.sh $1 true false false
+echo "loading time ..." > $2/log$c.txt
+scripts/load-axioms.sh $1 true false false >> $2/log$c.txt
 
 # classify the ontology
-time scripts/classify-all.sh > $2/log$c.txt
+echo "classification time ..." >>
+(time scripts/classify-all.sh) >> $2/log$c.txt 2>&1
 
 # move output and error directories to log directory
 cp -ar output/ $2/output$c
