@@ -23,7 +23,7 @@ echo "loading time ..." > $2/log$c.txt
 scripts/load-axioms.sh $1 true false false >> $2/log$c.txt
 
 # classify the ontology
-echo "classification time ..." >>
+echo "classification time ..." >> $2/log$c.txt
 (time scripts/classify-all.sh) >> $2/log$c.txt 2>&1
 
 # move output and error directories to log directory
