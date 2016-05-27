@@ -8,6 +8,9 @@ if [ $# -ne 3 ]; then
 	exit 1
 fi
 
+# copy DistEL jar, lib, properties file to all nodes
+scripts/init.sh nodes.txt azureuser ShardInfo.properties
+
 for (( c=1; c<=$3; c++ ))
 do
 
@@ -15,19 +18,17 @@ do
 scripts/delete-all.sh
 scripts/delete-all.sh
 
-# copy DistEL jar, lib, properties file to all nodes
-scripts/init.sh nodes.txt azureuser ShardInfo.properties
-
 # load axioms
-echo "loading time ..." > $2/log$c.txt
 scripts/load-axioms.sh $1 true false false >> $2/log$c.txt
 
 # classify the ontology
-echo "classification time ..." >> $2/log$c.txt
 (time scripts/classify-all.sh) >> $2/log$c.txt 2>&1
 
 # move output and error directories to log directory
 cp -ar output/ $2/output$c
 cp -ar error/ $2/error$c
+
+# add timing info to the summary file
+tail -3 $2/log$c.txt | head -1 >> $2/summary.txt
 
 done
