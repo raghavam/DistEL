@@ -11,8 +11,7 @@ import java.util.Set;
 import knoelab.classification.init.Normalizer;
 
 import org.semanticweb.owlapi.apibinding.OWLManager;
-import org.semanticweb.owlapi.io.OWLFunctionalSyntaxOntologyFormat;
-import org.semanticweb.owlapi.io.RDFXMLOntologyFormat;
+import org.semanticweb.owlapi.formats.FunctionalSyntaxDocumentFormat;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAxiom;
 import org.semanticweb.owlapi.model.OWLClass;
@@ -83,7 +82,7 @@ public class OntologyMultiplier {
         	System.out.println("Done with " + i + " copy");
         }
         manager.saveOntology(newOntology, 
-        		new OWLFunctionalSyntaxOntologyFormat(), newOWLIRI);
+        		new FunctionalSyntaxDocumentFormat(), newOWLIRI);
         System.out.println("Total Logical Axioms: " + 
         		newOntology.getLogicalAxiomCount());
  	}
@@ -200,7 +199,8 @@ public class OntologyMultiplier {
 	    	// remove ontology from manager & reload
 	    	manager.removeOntology(ontology);  
         }
-        manager.saveOntology(newOntology, new RDFXMLOntologyFormat(), newOWLIRI);
+        manager.saveOntology(newOntology, 
+        		new FunctionalSyntaxDocumentFormat(), newOWLIRI);
 	}
 	
 	public void mergeOntologies(String[] args) throws Exception {
@@ -231,7 +231,7 @@ public class OntologyMultiplier {
         System.out.println("Logical axioms in merged ontology: " + 
         		mergedOntology.getLogicalAxiomCount());
         System.out.println("Saving mergedOntology.owl....");
-        manager.saveOntology(mergedOntology, new RDFXMLOntologyFormat(), 
+        manager.saveOntology(mergedOntology, new FunctionalSyntaxDocumentFormat(), 
         		mergedOntologyIRI);
 	}
 	
@@ -319,7 +319,7 @@ public class OntologyMultiplier {
         objPropAssertions.clear();
         objProps.clear();
         System.out.println("Saving ontology...");
-        manager.saveOntology(ontology, new RDFXMLOntologyFormat());
+        manager.saveOntology(ontology, new FunctionalSyntaxDocumentFormat());
         System.out.println("Done");
 	}
 	
