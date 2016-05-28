@@ -33,4 +33,10 @@ cp -ar error/ $2/error$c
 # add timing info to the summary file
 tail -3 $2/log$c.txt | head -1 >> $2/summary.txt
 
+# delay to allow pending DB write operations
+if [ $c -lt $3 ]
+then
+	sleep 10s
+fi
+
 done
