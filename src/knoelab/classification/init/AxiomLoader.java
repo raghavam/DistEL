@@ -22,7 +22,7 @@ import knoelab.classification.misc.Util;
 import knoelab.classification.pipeline.PipelineManager;
 
 import org.semanticweb.owlapi.apibinding.OWLManager;
-import org.semanticweb.owlapi.io.RDFXMLOntologyFormat;
+import org.semanticweb.owlapi.formats.FunctionalSyntaxDocumentFormat;
 import org.semanticweb.owlapi.model.AxiomType;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLClass;
@@ -227,11 +227,11 @@ public class AxiomLoader {
 			OWLOntologyManager manager, OWLOntology normalizedOntology) 
 			throws OWLOntologyStorageException {
     	// saving the normalized ontology to file, for testing
-    	RDFXMLOntologyFormat owlxmlFormat = new RDFXMLOntologyFormat();
 	    File file = new File("Norm-" + owlFile.getName());
 	    if(file.exists())
 	    	file.delete();
-	    manager.saveOntology(normalizedOntology, owlxmlFormat, IRI.create(file)); 
+	    manager.saveOntology(normalizedOntology, 
+	    		new FunctionalSyntaxDocumentFormat(), IRI.create(file)); 
 	}
 	
 	private void assignNodesToRules(

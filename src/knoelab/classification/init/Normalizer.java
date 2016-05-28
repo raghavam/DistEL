@@ -18,7 +18,7 @@ import java.util.Stack;
 import java.util.UUID;
 
 import org.semanticweb.owlapi.apibinding.OWLManager;
-import org.semanticweb.owlapi.io.OWLFunctionalSyntaxOntologyFormat;
+import org.semanticweb.owlapi.formats.FunctionalSyntaxDocumentFormat;
 import org.semanticweb.owlapi.model.AxiomType;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAxiom;
@@ -902,8 +902,6 @@ public class Normalizer {
     	GregorianCalendar start = new GregorianCalendar();    	
     	Set<String> typesRemoved = new HashSet<String>();
     	int totalAxioms = 0;
-    	OWLFunctionalSyntaxOntologyFormat functionalFormat = 
-    			new OWLFunctionalSyntaxOntologyFormat();
     	OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
 //    	totalAxioms += normalizeData(manager, new File(args[0]), 
 //    			functionalFormat, typesRemoved, args[1]);
@@ -913,7 +911,7 @@ public class Normalizer {
     	int count = 0;
     	for(File owlFile : allFiles) {
     		totalAxioms += normalizeData(manager, owlFile, 
-    				functionalFormat, typesRemoved, args[1]);
+    				typesRemoved, args[1]);
     		System.out.println("No of axioms after normalization: " + totalAxioms);
     		count++;
     		System.out.println("Done with " + count);
@@ -945,7 +943,7 @@ public class Normalizer {
     }
     
     private static int normalizeData(OWLOntologyManager manager, 
-    		File owlFile, OWLFunctionalSyntaxOntologyFormat functionalFormat, 
+    		File owlFile,  
     		Set<String> typesRemoved, String outputPath) throws Exception {
     	IRI documentIRI = IRI.create(owlFile);
         OWLOntology ontology = manager.loadOntology(documentIRI);
@@ -958,7 +956,7 @@ public class Normalizer {
 	    if(file.exists())
 	    	file.delete();
 	    manager.saveOntology(normalizedOntology, 
-	    		functionalFormat, IRI.create(file)); 
+	    		new FunctionalSyntaxDocumentFormat(), IRI.create(file)); 
 	    typesRemoved.addAll(normalizer.getRemovedTypes());
 	    manager.removeOntology(ontology);
 	    return normalizedOntology.getLogicalAxiomCount();

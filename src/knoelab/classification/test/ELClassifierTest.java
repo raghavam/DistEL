@@ -19,7 +19,6 @@ import knoelab.classification.misc.HostInfo;
 import knoelab.classification.misc.PropertyFileHandler;
 import knoelab.classification.misc.Util;
 
-import org.semanticweb.HermiT.Reasoner;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.AddAxiom;
@@ -252,10 +251,10 @@ public class ELClassifierTest {
 					
 			case 5:
 					System.out.println("Using HermiT...");
-					Reasoner hermitReasoner = new Reasoner(ontology);
-				    hermitReasoner.precomputeInferences(
-				    		InferenceType.CLASS_HIERARCHY);
-				    hermitReasoner.dispose();
+//					Reasoner hermitReasoner = new Reasoner(ontology);
+//				    hermitReasoner.precomputeInferences(
+//				    		InferenceType.CLASS_HIERARCHY);
+//				    hermitReasoner.dispose();
 					break;
 					
 			case 6:
@@ -606,7 +605,7 @@ public class ELClassifierTest {
 	    System.out.println("Time taken (millis): " + 
 				Util.getElapsedTime(start));
 	}
-	
+/*	
 	public void getHermitIncrementalRuntime(String baseOnt, String ontDir) 
 			throws Exception {
 		GregorianCalendar start = new GregorianCalendar();
@@ -643,6 +642,7 @@ public class ELClassifierTest {
 	    System.out.println("\nTime taken (millis): " + 
 				Util.getElapsedTime(start));
 	}
+*/	
 	
 	private void findDataHasValueAxiom(Set<OWLSubClassOfAxiom> axioms) {
 		for(OWLSubClassOfAxiom ax : axioms) {

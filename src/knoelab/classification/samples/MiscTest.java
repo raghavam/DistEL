@@ -32,8 +32,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.apibinding.OWLManager;
-import org.semanticweb.owlapi.io.OWLFunctionalSyntaxOntologyFormat;
-import org.semanticweb.owlapi.io.OWLXMLOntologyFormat;
+import org.semanticweb.owlapi.formats.FunctionalSyntaxDocumentFormat;
 import org.semanticweb.owlapi.model.AxiomType;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAxiom;
@@ -496,7 +495,7 @@ public class MiscTest {
 		Normalizer normalizer = new Normalizer(manager, mergedOntology);
 		OWLOntology mergedNormalizedOntology = normalizer.Normalize();
 		manager.saveOntology(mergedNormalizedOntology, 
-				new OWLXMLOntologyFormat(), IRI.create(
+				new FunctionalSyntaxDocumentFormat(), IRI.create(
 						new File("norm-" + s)));
 	}
 	
@@ -612,7 +611,7 @@ public class MiscTest {
         OWLOntology ontology = manager.loadOntologyFromOntologyDocument(documentIRI);
         
         String fileName = owlFile.getName().split("\\.")[0] + "func-syntax.owl";
-        manager.saveOntology(ontology, new OWLFunctionalSyntaxOntologyFormat(), 
+        manager.saveOntology(ontology, new FunctionalSyntaxDocumentFormat(), 
         		IRI.create(new File(fileName)));
         System.out.println("Done converting into another format");
 	}
