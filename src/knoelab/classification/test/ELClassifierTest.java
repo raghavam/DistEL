@@ -196,13 +196,14 @@ public class ELClassifierTest {
 							ontology);
 					reasoner.precomputeInferences(
 							InferenceType.CLASS_HIERARCHY);
-					Set<OWLClass> ontConcepts = ontology.getClassesInSignature();
-					for(OWLClass concept : ontConcepts) {
-						Set<String> superClasses = getSuperClasses(
-								reasoner, concept, owlThing);
-						for(String superClass : superClasses)
-							elkWriter.println(concept.toString() + "|" + superClass);
-					}
+//					System.out.println("Writing results to file ...");
+//					Set<OWLClass> ontConcepts = ontology.getClassesInSignature();
+//					for(OWLClass concept : ontConcepts) {
+//						Set<String> superClasses = getSuperClasses(
+//								reasoner, concept, owlThing);
+//						for(String superClass : superClasses)
+//							elkWriter.println(concept.toString() + "|" + superClass);
+//					}
 					reasoner.dispose();
 					elkWriter.close();
 					reasoner.dispose();
