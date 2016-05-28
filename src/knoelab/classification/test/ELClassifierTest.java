@@ -164,11 +164,9 @@ public class ELClassifierTest {
 		return pset;
 	}
 	
-	public void getReasonerRunTime() throws Exception {
+	public void getReasonerRunTime(String ontPath) throws Exception {
 			
 		Scanner scanner = new Scanner(System.in);
-		System.out.print("Enter path to ontology: ");
-		String ontPath = scanner.nextLine();
 		System.out.println("Select a reasoner");
 		System.out.println("\t 1 ELK \n\t 2 jCEL \n\t 3 Snorocket");
 		System.out.println("\t 4 Pellet \n\t 5 HermiT \n\t 6 JFact");
@@ -179,6 +177,7 @@ public class ELClassifierTest {
 		File ontFile = new File(ontPath);
 		IRI documentIRI = IRI.create(ontFile);
 		OWLOntologyManager manager = OWLManager.createOWLOntologyManager();	
+		System.out.println("Loading ontology ...");
 		OWLOntology ontology = manager.loadOntologyFromOntologyDocument(documentIRI);
 		
 		OWLClass owlThing = ontology.getOWLOntologyManager().
@@ -693,14 +692,14 @@ public class ELClassifierTest {
 	}
 	
 	public static void main(String[] args) throws Exception {
-//		if(args.length != 1) {
-//			System.out.println("Give the path of owl file");
-//    		System.exit(-1);
-//		}
+		if(args.length != 1) {
+			System.out.println("Give the path of owl file");
+    		System.exit(-1);
+		}
 //		new ELClassifierTest().precomputeAndCheckResults(args);
 //		new ELClassifierTest().mergeAndCompare(args[0]);
-//		new ELClassifierTest().getReasonerRunTime();
-		new ELClassifierTest().writeResultsToFile();
+		new ELClassifierTest().getReasonerRunTime(args[0]);
+//		new ELClassifierTest().writeResultsToFile();
 //		new ELClassifierTest().getELKIncrementalRuntime(args[0], args[1]);
 //		new ELClassifierTest().getPelletIncrementalClassifierRunTime(
 //				args[0], args[1]);
