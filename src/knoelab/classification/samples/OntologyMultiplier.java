@@ -324,11 +324,11 @@ public class OntologyMultiplier {
 	}
 	
 	public static void main(String[] args) throws Exception {
-//		if(args.length != 2) {
-//			System.out.println("Needs 2 inputs -- (multiplier, path_To_Ontology)");
+		if(args.length != 2) {
+			System.out.println("Needs 2 inputs -- (multiplier, path_To_Ontology)");
 //			System.out.println("Needs 2 inputs -- path_To_Ontologies and ABox assertions");
-//			System.exit(-1);
-//		}
+			System.exit(-1);
+		}
 		new OntologyMultiplier().multiplyOntology(Integer.parseInt(args[0]), args[1]);
 //		new OntologyMultiplier().addABoxAssertions(args[0], Integer.parseInt(args[1]));
 //		System.out.println("Output written to Original_Ontology_Name_<multiplier>.owl");
