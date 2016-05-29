@@ -205,7 +205,6 @@ public class ELClassifierTest {
 //					}
 					reasoner.dispose();
 					elkWriter.close();
-					reasoner.dispose();
 					break;
 					
 			case 2: 
@@ -272,6 +271,26 @@ public class ELClassifierTest {
 		}
 		System.out.println("Time taken (millis): " + 
 				Util.getElapsedTime(start));
+	}
+	
+	public void getELKRunTime(String ontPath) throws Exception {
+		File ontFile = new File(ontPath);
+		IRI documentIRI = IRI.create(ontFile);
+		System.out.println("using ELK ...");
+		OWLOntologyManager manager = OWLManager.createOWLOntologyManager();	
+		System.out.println("Loading ontology ...");
+		Long beginTime = System.nanoTime();
+		OWLOntology ontology = manager.loadOntologyFromOntologyDocument(documentIRI);
+		OWLReasonerFactory reasonerFactory = 
+				new ElkReasonerFactory();
+		OWLReasoner reasoner = reasonerFactory.createReasoner(
+				ontology);
+		reasoner.precomputeInferences(
+				InferenceType.CLASS_HIERARCHY);
+		reasoner.dispose();
+		Long endTime = System.nanoTime();
+		System.out.println("Time taken for classification (seconds): " + 
+					(endTime - beginTime)/1e9);
 	}
 	
 	private void getPelletIncrementalClassifierRunTime(String baseOnt, 
@@ -699,7 +718,8 @@ public class ELClassifierTest {
 		}
 //		new ELClassifierTest().precomputeAndCheckResults(args);
 //		new ELClassifierTest().mergeAndCompare(args[0]);
-		new ELClassifierTest().getReasonerRunTime(args[0]);
+//		new ELClassifierTest().getReasonerRunTime(args[0]);
+		new ELClassifierTest().getELKRunTime(args[0]);
 //		new ELClassifierTest().writeResultsToFile();
 //		new ELClassifierTest().getELKIncrementalRuntime(args[0], args[1]);
 //		new ELClassifierTest().getPelletIncrementalClassifierRunTime(
