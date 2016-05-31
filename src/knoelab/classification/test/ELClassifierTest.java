@@ -719,8 +719,8 @@ public class ELClassifierTest {
 //		new ELClassifierTest().precomputeAndCheckResults(args);
 //		new ELClassifierTest().mergeAndCompare(args[0]);
 //		new ELClassifierTest().getReasonerRunTime(args[0]);
-		new ELClassifierTest().getELKRunTime(args[0]);
-//		new ELClassifierTest().writeResultsToFile();
+//		new ELClassifierTest().getELKRunTime(args[0]);
+		new ELClassifierTest().writeResultsToFile();
 //		new ELClassifierTest().getELKIncrementalRuntime(args[0], args[1]);
 //		new ELClassifierTest().getPelletIncrementalClassifierRunTime(
 //				args[0], args[1]);
