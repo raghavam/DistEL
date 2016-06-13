@@ -182,14 +182,13 @@ public class ELClassifierTest {
 		OWLClass owlThing = ontology.getOWLOntologyManager().
 				getOWLDataFactory().getOWLThing();
 		System.out.println("Assuming the input ontology is already normalized");
-		GregorianCalendar start = new GregorianCalendar();
+		long startTime = System.nanoTime();
 		
 		switch(option) {
 			case 1:	
 					System.out.println("Using ELK...");
 //					PrintWriter elkWriter = new PrintWriter(new BufferedWriter(
 //					        new FileWriter("final-saxioms-elk.txt")));
-					long startTime1 = System.nanoTime();
 					OWLReasonerFactory reasonerFactory = 
 							new ElkReasonerFactory();
 					OWLReasoner reasoner = reasonerFactory.createReasoner(
@@ -205,26 +204,20 @@ public class ELClassifierTest {
 //							elkWriter.println(concept.toString() + "|" + superClass);
 //					}
 					reasoner.dispose();
-					double totalTime1 = Util.getElapsedTimeSecs(startTime1);
-					System.out.println("ELK - time (secs): " + totalTime1);
 //					elkWriter.close();
 					break;
 					
 			case 2: 
 					System.out.println("Using jCEL...");
-					long startTime2 = System.nanoTime();
 					JcelReasoner jcelReasoner = new JcelReasoner(
 							ontology, false);
 				    jcelReasoner.precomputeInferences(
 				    		InferenceType.CLASS_HIERARCHY);
 				    jcelReasoner.dispose();
-				    double totalTime2 = Util.getElapsedTimeSecs(startTime2);
-					System.out.println("jcel - time (secs): " + totalTime2);
 					break;
 					
 			case 3:
 					System.out.println("Using Snorocket...");
-					long startTime3 = System.nanoTime();
 					SnorocketReasonerFactory srf = 
 							new SnorocketReasonerFactory();
 				    OWLReasoner snorocketReasoner = 
@@ -232,8 +225,6 @@ public class ELClassifierTest {
 				    snorocketReasoner.precomputeInferences(
 				    		InferenceType.CLASS_HIERARCHY);
 				    snorocketReasoner.dispose();
-				    double totalTime3 = Util.getElapsedTimeSecs(startTime3);
-					System.out.println("Snorocket - time (secs): " + totalTime3);
 					break;
 					
 			case 4:
@@ -278,8 +269,8 @@ public class ELClassifierTest {
 			default:
 					throw new Exception("Wrong option given");
 		}
-		System.out.println("Time taken (millis): " + 
-				Util.getElapsedTime(start));
+		System.out.println("Time taken (secs): " + 
+				Util.getElapsedTimeSecs(startTime));
 	}
 	
 	public void getELKRunTime(String ontPath) throws Exception {
