@@ -36,6 +36,8 @@ public class ProgressMessageHandler extends JedisPubSub implements Runnable {
 		iterTypeScoreMap = new ConcurrentHashMap<String, Map<String, Double>>();
 		PropertyFileHandler propertyFileHandler = PropertyFileHandler.getInstance();
 		HostInfo channelHostInfo = propertyFileHandler.getChannelHost();
+		System.out.println("JedisPubSub host: " + channelHostInfo.getHost() + 
+				"  port: " + channelHostInfo.getPort());
 		subscriberJedis = new Jedis(channelHostInfo.getHost(), 
 				channelHostInfo.getPort(), Constants.INFINITE_TIMEOUT);
 		totalMsgCount = propertyFileHandler.getNodeCount();
