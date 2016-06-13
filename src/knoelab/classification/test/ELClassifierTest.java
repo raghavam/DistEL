@@ -187,8 +187,9 @@ public class ELClassifierTest {
 		switch(option) {
 			case 1:	
 					System.out.println("Using ELK...");
-					PrintWriter elkWriter = new PrintWriter(new BufferedWriter(
-					        new FileWriter("final-saxioms-elk.txt")));
+//					PrintWriter elkWriter = new PrintWriter(new BufferedWriter(
+//					        new FileWriter("final-saxioms-elk.txt")));
+					long startTime1 = System.nanoTime();
 					OWLReasonerFactory reasonerFactory = 
 							new ElkReasonerFactory();
 					OWLReasoner reasoner = reasonerFactory.createReasoner(
@@ -204,20 +205,26 @@ public class ELClassifierTest {
 //							elkWriter.println(concept.toString() + "|" + superClass);
 //					}
 					reasoner.dispose();
-					elkWriter.close();
+					double totalTime1 = Util.getElapsedTimeSecs(startTime1);
+					System.out.println("ELK - time (secs): " + totalTime1);
+//					elkWriter.close();
 					break;
 					
 			case 2: 
 					System.out.println("Using jCEL...");
+					long startTime2 = System.nanoTime();
 					JcelReasoner jcelReasoner = new JcelReasoner(
 							ontology, false);
 				    jcelReasoner.precomputeInferences(
 				    		InferenceType.CLASS_HIERARCHY);
 				    jcelReasoner.dispose();
+				    double totalTime2 = Util.getElapsedTimeSecs(startTime2);
+					System.out.println("jcel - time (secs): " + totalTime2);
 					break;
 					
 			case 3:
 					System.out.println("Using Snorocket...");
+					long startTime3 = System.nanoTime();
 					SnorocketReasonerFactory srf = 
 							new SnorocketReasonerFactory();
 				    OWLReasoner snorocketReasoner = 
@@ -225,6 +232,8 @@ public class ELClassifierTest {
 				    snorocketReasoner.precomputeInferences(
 				    		InferenceType.CLASS_HIERARCHY);
 				    snorocketReasoner.dispose();
+				    double totalTime3 = Util.getElapsedTimeSecs(startTime3);
+					System.out.println("Snorocket - time (secs): " + totalTime3);
 					break;
 					
 			case 4:
@@ -718,9 +727,9 @@ public class ELClassifierTest {
 		}
 //		new ELClassifierTest().precomputeAndCheckResults(args);
 //		new ELClassifierTest().mergeAndCompare(args[0]);
-//		new ELClassifierTest().getReasonerRunTime(args[0]);
+		new ELClassifierTest().getReasonerRunTime(args[0]);
 //		new ELClassifierTest().getELKRunTime(args[0]);
-		new ELClassifierTest().writeResultsToFile();
+//		new ELClassifierTest().writeResultsToFile();
 //		new ELClassifierTest().getELKIncrementalRuntime(args[0], args[1]);
 //		new ELClassifierTest().getPelletIncrementalClassifierRunTime(
 //				args[0], args[1]);
