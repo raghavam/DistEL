@@ -137,9 +137,9 @@ public class MiscTest {
 //		printAxioms(args[0]);
 //		convertToFunctionalSyntax(args[0]);		
 //		pingRedis();
+//		printLogicalAxiomsCount(args[0]);
 		
-//		saveOntInFunctionalFormat(args[0]);
-		printLogicalAxiomsCount(args[0]);
+		saveOntInFunctionalFormat(args[0]);
 	}
 	
 	private static void saveOntInFunctionalFormat(String ontPath) throws Exception {
@@ -147,7 +147,7 @@ public class MiscTest {
         File owlFile = new File(ontPath);
         IRI documentIRI = IRI.create(owlFile);
         OWLOntology ontology = manager.loadOntologyFromOntologyDocument(documentIRI);
-        String newFileName = owlFile.getName().split("\\.")[0] + "_" + "func" + ".owl";
+        String newFileName = owlFile.getName();
         File newOWLFile = new File(newFileName);
         IRI newOWLIRI = IRI.create(newOWLFile);
         manager.saveOntology(ontology, 
