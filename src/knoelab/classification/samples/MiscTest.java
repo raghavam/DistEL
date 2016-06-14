@@ -146,8 +146,11 @@ public class MiscTest {
         File owlFile = new File(ontPath);
         IRI documentIRI = IRI.create(owlFile);
         OWLOntology ontology = manager.loadOntologyFromOntologyDocument(documentIRI);
+        String newFileName = owlFile.getName().split("\\.")[0] + "_" + "func" + ".owl";
+        File newOWLFile = new File(newFileName);
+        IRI newOWLIRI = IRI.create(newOWLFile);
         manager.saveOntology(ontology, 
-        		new FunctionalSyntaxDocumentFormat(), documentIRI);
+        		new FunctionalSyntaxDocumentFormat(), newOWLIRI);
 	}
 	
 	private static void pingRedis() {
