@@ -135,9 +135,19 @@ public class MiscTest {
 //		testJedisShardingRead();
 //		testScoreComparator();
 //		printAxioms(args[0]);
-//		convertToFunctionalSyntax(args[0]);
+//		convertToFunctionalSyntax(args[0]);		
+//		pingRedis();
 		
-		pingRedis();
+		saveOntInFunctionalFormat(args[0]);
+	}
+	
+	private static void saveOntInFunctionalFormat(String ontPath) throws Exception {
+		OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
+        File owlFile = new File(ontPath);
+        IRI documentIRI = IRI.create(owlFile);
+        OWLOntology ontology = manager.loadOntologyFromOntologyDocument(documentIRI);
+        manager.saveOntology(ontology, 
+        		new FunctionalSyntaxDocumentFormat(), documentIRI);
 	}
 	
 	private static void pingRedis() {
