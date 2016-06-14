@@ -165,7 +165,7 @@ public class ELClassifierTest {
 	}
 	
 	public void getReasonerRunTime(String ontPath) throws Exception {
-			
+/*			
 		Scanner scanner = new Scanner(System.in);
 		System.out.println("Select a reasoner");
 		System.out.println("\t 1 ELK \n\t 2 jCEL \n\t 3 Snorocket");
@@ -173,32 +173,22 @@ public class ELClassifierTest {
 		System.out.println("Enter your choice: ");
 		int option = scanner.nextInt();
 		scanner.close();
-		
+*/		
 		File ontFile = new File(ontPath);
 		IRI documentIRI = IRI.create(ontFile);
 		OWLOntologyManager manager = OWLManager.createOWLOntologyManager();	
 		System.out.println("Loading ontology ...");
 		OWLOntology ontology = manager.loadOntologyFromOntologyDocument(documentIRI);
 		
-		OWLClass owlThing = ontology.getOWLOntologyManager().
-				getOWLDataFactory().getOWLThing();
-		System.out.println("Assuming the input ontology is already normalized");
-		long startTime = System.nanoTime();
+//		OWLClass owlThing = ontology.getOWLOntologyManager().
+//				getOWLDataFactory().getOWLThing();
+//		System.out.println("Assuming the input ontology is already normalized");
 		
-		switch(option) {
-			case 1:	
-					classifyWithELK(ontology);
-					break;
-					
-			case 2: 
-					classifyWithJCEL(ontology);
-					break;
-					
-			case 3:
-					classifyWithSnorocket(ontology);
-					break;
-					
-			case 4:
+		classifyWithELK(ontology);
+		classifyWithJCEL(ontology);
+		classifyWithSnorocket(ontology);
+		classifyWithJFact(ontology);
+/*		
 					System.out.println("Using Pellet...");
 					PrintWriter writer = new PrintWriter(new BufferedWriter(
 				        new FileWriter("final-saxioms-pellet.txt")));
@@ -217,18 +207,16 @@ public class ELClassifierTest {
 					}
 					pelletReasoner.dispose();
 					writer.close();
-					break;
+*/					
 					
-			case 5:
-					System.out.println("Using HermiT...");
+//			System.out.println("Using HermiT...");
 //					Reasoner hermitReasoner = new Reasoner(ontology);
 //				    hermitReasoner.precomputeInferences(
 //				    		InferenceType.CLASS_HIERARCHY);
 //				    hermitReasoner.dispose();
-					break;
 					
-			case 6:
-				//JFact jar gave java version problems. Using Fact++, connects via JNI.
+					
+			//JFact jar gave java version problems. Using Fact++, connects via JNI.
 				//use -Djava.library.path=./FaCT++-linux-v1.6.2/64bit as arg. 
 				//java <heap> -Djava.library.path=./FaCT++-linux-v1.6.2/64bit ...
 				/*
@@ -238,17 +226,11 @@ public class ELClassifierTest {
 						InferenceType.CLASS_HIERARCHY);
 					factppReasoner.dispose();
 				 */
-					classifyWithJFact(ontology);
-					break;
-			default:
-					throw new Exception("Wrong option given");
-		}
-		System.out.println("Time taken (secs): " + 
-				Util.getElapsedTimeSecs(startTime));
 	}
 	
 	private void classifyWithELK(OWLOntology ontology) {
-		System.out.println("Using ELK...");
+		System.out.println("\nUsing ELK...");
+		long startTime = System.nanoTime();
 		OWLReasonerFactory reasonerFactory = 
 				new ElkReasonerFactory();
 		OWLReasoner reasoner = reasonerFactory.createReasoner(
@@ -256,19 +238,25 @@ public class ELClassifierTest {
 		reasoner.precomputeInferences(
 				InferenceType.CLASS_HIERARCHY);
 		reasoner.dispose();
+		System.out.println("Time taken (secs): " + 
+				Util.getElapsedTimeSecs(startTime));
 	}
 	
 	private void classifyWithJCEL(OWLOntology ontology) {
-		System.out.println("Using jCEL...");
+		System.out.println("\nUsing jCEL...");
+		long startTime = System.nanoTime();
 		JcelReasoner jcelReasoner = new JcelReasoner(
 				ontology, false);
 	    jcelReasoner.precomputeInferences(
 	    		InferenceType.CLASS_HIERARCHY);
 	    jcelReasoner.dispose();
+	    System.out.println("Time taken (secs): " + 
+				Util.getElapsedTimeSecs(startTime));
 	}
 	
 	private void classifyWithSnorocket(OWLOntology ontology) {
-		System.out.println("Using Snorocket...");
+		System.out.println("\nUsing Snorocket...");
+		long startTime = System.nanoTime();
 		SnorocketReasonerFactory srf = 
 				new SnorocketReasonerFactory();
 	    OWLReasoner snorocketReasoner = 
@@ -276,14 +264,19 @@ public class ELClassifierTest {
 	    snorocketReasoner.precomputeInferences(
 	    		InferenceType.CLASS_HIERARCHY);
 	    snorocketReasoner.dispose();
+	    System.out.println("Time taken (secs): " + 
+				Util.getElapsedTimeSecs(startTime));
 	}
 	
 	private void classifyWithJFact(OWLOntology ontology) {
-		System.out.println("Using JFact ...");
+		System.out.println("\nUsing JFact ...");
+		long startTime = System.nanoTime();
 		OWLReasonerFactory reasonerFactory = new JFactFactory();
 		OWLReasoner jfactReasoner = reasonerFactory.createReasoner(ontology);
 		jfactReasoner.precomputeInferences(InferenceType.CLASS_HIERARCHY);
 		jfactReasoner.dispose();
+		System.out.println("Time taken (secs): " + 
+				Util.getElapsedTimeSecs(startTime));
 	}
 	
 	private void getPelletIncrementalClassifierRunTime(String baseOnt, 
