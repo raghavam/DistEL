@@ -138,7 +138,8 @@ public class MiscTest {
 //		convertToFunctionalSyntax(args[0]);		
 //		pingRedis();
 		
-		saveOntInFunctionalFormat(args[0]);
+//		saveOntInFunctionalFormat(args[0]);
+		printLogicalAxiomsCount(args[0]);
 	}
 	
 	private static void saveOntInFunctionalFormat(String ontPath) throws Exception {
@@ -151,6 +152,14 @@ public class MiscTest {
         IRI newOWLIRI = IRI.create(newOWLFile);
         manager.saveOntology(ontology, 
         		new FunctionalSyntaxDocumentFormat(), newOWLIRI);
+	}
+	
+	private static void printLogicalAxiomsCount(String ontPath) throws Exception {
+		OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
+        File owlFile = new File(ontPath);
+        IRI documentIRI = IRI.create(owlFile);
+        OWLOntology ontology = manager.loadOntologyFromOntologyDocument(documentIRI);
+        System.out.println("Logical axioms: " + ontology.getLogicalAxiomCount());
 	}
 	
 	private static void pingRedis() {
