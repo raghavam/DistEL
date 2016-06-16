@@ -51,6 +51,7 @@ import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.model.OWLSubClassOfAxiom;
+import org.semanticweb.owlapi.model.parameters.Imports;
 import org.semanticweb.owlapi.reasoner.InferenceType;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
@@ -138,8 +139,9 @@ public class MiscTest {
 //		convertToFunctionalSyntax(args[0]);		
 //		pingRedis();
 //		printLogicalAxiomsCount(args[0]);
+//		saveOntInFunctionalFormat(args[0]);
 		
-		saveOntInFunctionalFormat(args[0]);
+		printOntologyStats(args[0]);
 	}
 	
 	private static void saveOntInFunctionalFormat(String ontPath) throws Exception {
@@ -666,11 +668,11 @@ public class MiscTest {
         		ontology.getDataPropertiesInSignature().size());
         System.out.println("No of object properties: " + 
         		ontology.getObjectPropertiesInSignature().size());
-/*        
-        System.out.println("No of ABox axioms: " + ontology.getABoxAxioms(false).size());
-        System.out.println("No of TBox axioms: " + ontology.getTBoxAxioms(false).size());
-        System.out.println("No of RBox axioms: " + ontology.getRBoxAxioms(false).size());
-*/        
+        
+        System.out.println("No of ABox axioms: " + ontology.getABoxAxioms(Imports.EXCLUDED).size());
+        System.out.println("No of TBox axioms: " + ontology.getTBoxAxioms(Imports.EXCLUDED).size());
+        System.out.println("No of RBox axioms: " + ontology.getRBoxAxioms(Imports.EXCLUDED).size());
+        
 	}
 		
 	private static void testLuaTable() {
